@@ -1,0 +1,64 @@
+:root {
+  --background-light: #f8f9fa;
+  --background-dark: #121212;
+  --card-light: #ffffff;
+  --card-dark: #1e1e1e;
+  --text-light: #2c3e50;
+  --text-dark: #f1f1f1;
+  --muted-light: #6c757d;
+  --muted-dark: #ccc;
+}
+
+body {
+  background-color: var(--background-light);
+  color: var(--text-light);
+  font-family: 'Segoe UI', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.content-container {
+  background-color: var(--card-light);
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: background-color 0.3s;
+}
+
+.card-surface {
+  background-color: var(--card-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: background-color 0.3s;
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: var(--background-dark);
+    color: var(--text-dark);
+  }
+
+  .content-container,
+  .card-surface {
+    background-color: var(--card-dark);
+    color: var(--text-dark);
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .fw-bold, .fw-semibold,
+  .text-dark {
+    color: var(--text-dark) !important;
+  }
+
+  .text-muted {
+    color: var(--muted-dark) !important;
+  }
+}
+.navbar-brand.text-black {
+  color: #000 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3); /* Leve sombra clara */
+}

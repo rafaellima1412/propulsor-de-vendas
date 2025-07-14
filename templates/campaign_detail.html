@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Campanha{% endblock %}
+
+{% block content %}
+  <div id="campaign-content" class="mb-4 text-center" style="max-width: 1080px; margin: auto;">
+    <h3>{{ campaign.title }}</h3>
+    <p>{{ campaign.paragraph }}</p>
+    <img src="{{ campaign.image }}" alt="Folder da campanha" class="img-fluid rounded shadow-sm" style="max-height: 600px;">
+  </div>
+
+  <!-- Botões -->
+<div class="d-flex flex-column align-items-center gap-3 my-5">
+  <button class="btn btn-primary">Imprimir Folder</button>
+  <button class="btn btn-success" onclick="exportImage('instagram')">Exportar para Instagram (1080x1080)</button>
+  <button class="btn btn-info" onclick="exportImage('facebook')">Exportar para Facebook (1200x628)</button>
+  <button class="btn btn-dark" onclick="exportImage('linkedin')">Exportar para LinkedIn (1200x627)</button>
+</div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    function exportImage(platform) {
+      const sizes = {
+        instagram: { width: 1080, height: 1080 },
+        facebook: { width: 1200, height: 628 },
+        linkedin: { width: 1200, height: 627 }
+      };
+
+      const target = document.getElementById('campaign-content');
+      const { width, height } = sizes[platform];
+
+      html2canvas(target, {
+        width: width,
+        height: height,
+        scale: 2,
+        useCORS: true
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `campaign_${platform}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+  </script>
+{% endblock %}
+

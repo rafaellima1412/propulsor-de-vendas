@@ -1,0 +1,35 @@
+from sqlalchemy import ForeignKey,String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from src.infra.database.base import Base
+from src.infra.database.models import UserModel
+
+
+class TimeModel(Base):
+    __tablename__ = "times"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100))
+
+    gerente_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    gerente = relationship(
+        "UserModel",
+        foreign_keys=[gerente_id],
+        back_populates="times_gerenciados",
+        lazy="joined"
+    )
+
+    coo_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    coo = relationship(
+        "UserModel",
+        foreign_keys=[coo_id],
+        back_populates="times_coordenados",
+        lazy="joined"
+    )
+
+    # Esse relacionamento deve apontar explicitamente a FK usada: UserModel.time_id
+    colaboradores = relationship(
+        "UserModel",
+        back_populates="time",
+        foreign_keys=[UserModel.time_id]
+    )

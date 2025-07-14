@@ -1,0 +1,92 @@
+from typing import List
+
+from sqlalchemy.orm import Session, joinedload
+
+from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
+from src.application.repositories.icampaign_repository import ICampanhaRepository
+from src.domain.entities.campaign import Campaign
+from src.infra.database.models import UserModel
+from src.infra.database.models.campaign_model import CampanhaModel
+
+class CampanhaRepository(ICampanhaRepository):
+    def __init__(self, session: Session):
+        self.session = session
+
+    def create(self, campanha: CampanhaCreateDTO, usuario_id: int) -> Campaign:
+            db_campanha = CampanhaModel(
+                title=campanha.title,
+                paragraph=campanha.paragraph,
+                post_type=campanha.post_type,
+                url=campanha.url,
+                image=campanha.image,
+                folder_url=campanha.folder_url,
+                qrcode_url=campanha.qrcode_url,
+            )
+            usuario = self.session.query(UserModel).filter(UserModel.id == usuario_id).first()
+            if not usuario:
+                raise ValueError("Usuário não encontrado")
+
+            db_campanha.usuarios.append(usuario)
+
+            self.session.add(db_campanha)
+            self.session.commit()
+            self.session.refresh(db_campanha)
+
+            return Campaign(
+                id=db_campanha.id,
+                title=db_campanha.title,
+                paragraph=db_campanha.paragraph,
+                post_type=db_campanha.post_type,
+                url=db_campanha.url,
+                image=db_campanha.image,
+                folder_url=db_campanha.folder_url,
+                qrcode_url=db_campanha.qrcode_url,
+                data_criacao=db_campanha.data_criacao
+            )
+
+    def list_by_usuario_id(self, usuario_id: int) -> List[Campaign]:
+        campanhas_db = (
+            self.session.query(CampanhaModel)
+            .join(CampanhaModel.usuarios)
+            .filter(UserModel.id == usuario_id)
+            .options(joinedload(CampanhaModel.usuarios))
+            .all()
+        )
+        return [
+            Campaign(
+                id=c.id,
+                title=c.title,
+                paragraph=c.paragraph,
+                post_type=c.post_type,
+                url=c.url,
+                image=c.image,
+                folder_url=c.folder_url,
+                qrcode_url=c.qrcode_url,
+                data_criacao=c.data_criacao
+            )
+            for c in campanhas_db
+        ]
+    def get_by_id(self, campanha_id: int) -> Campaign | None:
+        db_campanha = (
+            self.session.query(CampanhaModel)
+            .filter(CampanhaModel.id == campanha_id)
+            .first()
+        )
+        if not db_campanha:
+            return None
+
+        return Campaign(
+            id=db_campanha.id,
+            title=db_campanha.title,
+            paragraph=db_campanha.paragraph,
+            post_type=db_campanha.post_type,
+            url=db_campanha.url,
+            image=db_campanha.image,
+            folder_url=db_campanha.folder_url,
+            qrcode_url=db_campanha.qrcode_url,
+            data_criacao=db_campanha.data_criacao
+        )
+
+    def update(self, campaign: Campaign) -> None:
+        self.session.add(campaign)
+        self.session.commit()
