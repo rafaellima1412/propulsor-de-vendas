@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.application.repositories.iuser_repository import IUserRepository
+from src.domain.entities.time_schema import TimeCreate
 from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.user_model import UserModel
 from sqlalchemy.orm import Session
@@ -19,6 +20,8 @@ class UserUseCase:
     def create_user(self, user: UserCreateDTO) -> UserModel:
         if self.user_repo.get_by_cpf(user.cpf):
             raise HTTPException(status_code=400, detail="CPF já está cadastrado.")
+        if self.user_repo.get_by_username(user.username):
+            raise HTTPException(status_code=400, detail="Username já está cadastrado.")
 
         new_user = UserModel(
             username=user.username,
@@ -31,14 +34,15 @@ class UserUseCase:
         new_user = self.user_repo.create(new_user)
 
         if user.role == "gerente":
-            if user.novo_time:
+            if user.novo_time and user.novo_time.strip():
                 time = self.time_repo.get_by_name(user.novo_time)
                 if not time:
-                    time = self.time_repo.create(
+                    time_data = TimeCreate(
                         name=user.novo_time,
                         gerente_id=new_user.id,
-                        coo_id=new_user.id)
-
+                        coo_id=new_user.id
+                    )
+                    time = self.time_repo.create(time_data)
                 new_user.time_id = time.id
                 self.user_repo.update(new_user)
             elif user.time_existente_id:
@@ -48,6 +52,7 @@ class UserUseCase:
                 raise HTTPException(status_code=400, detail="Time obrigatório para gerente.")
 
         elif user.role == "colaborador":
+            print("📦 Recebido time_id para colaborador:", user.time_id)
             if user.time_id:
                 new_user.time_id = user.time_id
                 self.user_repo.update(new_user)

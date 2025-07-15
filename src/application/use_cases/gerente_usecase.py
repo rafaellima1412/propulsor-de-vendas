@@ -18,7 +18,7 @@ class GerenteUseCases:
         gerente = self.repo.get_by_id(id)
         if not gerente:
             raise ValueError("Gerente não encontrado")
-        gerente.name = data.nome
+        gerente.name = data.name
         gerente.coo_id = data.coo_id
         return self.repo.update(gerente)
 

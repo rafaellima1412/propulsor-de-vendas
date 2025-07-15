@@ -1,6 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class UserMinimal(BaseModel):
     id: int
@@ -16,8 +17,8 @@ class TimeCreate(TimeBase):
 
 class TimeOut(TimeBase):
     id: int
-    name: str
     gerente: Optional[UserMinimal] = None
     coo: Optional[UserMinimal] = None
     class Config:
         from_attributes = True
+        populate_by_name = True

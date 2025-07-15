@@ -23,10 +23,13 @@ router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def optional_int_form(field: Optional[str] = Form(None)) -> Optional[int]:
-    if not field:
+def parse_optional_int(value: Optional[str]) -> Optional[int]:
+    if value in (None, "", "null"):
         return None
-    return int(field)
+    try:
+        return int(value)
+    except ValueError:
+        return None
 @router.post("/")
 @inject
 def create_user(
@@ -56,8 +59,9 @@ def register_user(
     role: str = Form(...),
     subordinado_id: Optional[int] = Form(None),
     novo_time: Optional[str] = Form(None),
-    time_existente_id: Optional[int] = Depends(optional_int_form),
-    time_id: Optional[int] = Depends(optional_int_form),
+    time_existente_id: Optional[int] = Form(None),
+    time_id: Optional[int] = Form(None),
+
 
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
 ):
@@ -69,10 +73,10 @@ def register_user(
             cpf=cpf,
             hashed_password=hashed_password,
             role=role,
-            subordinado_id=subordinado_id,
-            time_existente_id=time_existente_id,
+            subordinado_id=parse_optional_int(subordinado_id),
+            time_existente_id=parse_optional_int(time_existente_id),
             novo_time=novo_time,
-            time_id=time_id,
+            time_id=parse_optional_int(time_id),
         )
         user_usecase.create_user(user_data)
         return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
@@ -150,17 +154,19 @@ async def post_register(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     try:
-        await user_usecase.register_user(
+        hashed_password = pwd_context.hash(password)
+        user_data = UserCreateDTO(
             username=username,
             full_name=full_name,
             cpf=cpf,
-            password=password,
+            hashed_password=hashed_password,
             role=role,
-            subordinado_id=subordinado_id,
-            time_existente_id=time_existente_id,
+            subordinado_id=parse_optional_int(subordinado_id),
+            time_existente_id=parse_optional_int(time_existente_id),
             novo_time=novo_time,
-            time_id=time_id
+            time_id=parse_optional_int(time_id),
         )
+        user_usecase.create_user(user_data)
         return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
 
     except Exception as e:
@@ -179,9 +185,8 @@ async def post_register(
 async def api_gerentes(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
 ):
-    # gerentes = user_usecase.list_users()
     return user_usecase.list_by_role("gerente")
-    # return [{"id": g.id, "nome": g.username} for g in gerentes]
+
 
 @router.get("/logout")
 def logout():
@@ -205,44 +210,3 @@ async def get_register(
         "error": None
     })
 
-# @router.get("/gerentes/by-coo/{coo_id}", response_model=List[UserOut])
-# def get_gerentes_by_coo(
-#         # coo_id: int,
-#         # db: Session = Depends(get_db)
-# ):
-#     return None
-#     # usecase = UserUseCase(db)
-#     # return usecase.list_gerentes_by_coo(coo_id)
-
-# @router.get("/colaboradores/by-gerente/{gerente_id}", response_model=List[UserOut])
-# def get_colaboradores_by_gerente(
-# ):
-#     return None
-#     usecase = UserUseCase(db)
-#     return usecase.list_colaboradores_by_gerente(gerente_id)
-
-# @router.get("/colaboradores/by-time/{time_id}", response_model=List[UserOut])
-# def get_colaboradores_by_time(
-#         # time_id: int,
-#         # db: Session = Depends(get_db)
-# ):
-#     return None
-#     # usecase = UserUseCase(db)
-#     # return usecase.list_colaboradores_by_time(time_id)
-#
-# @router.get("/role/{role}", response_model=List[UserOut])
-# def list_users_by_role(
-#         # role: str, db:
-#         # Session = Depends(get_db)
-# ):
-#     return None
-#     # usecase = UserUseCase(db)
-#     # return usecase.list_by_role(role)
-#
-# @router.get("/", response_model=List[UserOut])
-# def list_all_users(
-#         # db: Session = Depends(get_db)
-# ):
-#     return None
-#     # usecase = UserUseCase(db)
-#     # return usecase.list_all_users()

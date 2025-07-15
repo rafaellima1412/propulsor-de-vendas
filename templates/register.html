@@ -46,7 +46,7 @@
       <label for="subordinado-gerente" class="form-label">Gerentes</label>
       <select name="subordinado_id" id="subordinado-gerente" class="form-select">
         {% for g in gerentes %}
-          <option value="{{ g.id }}">{{ g.nome }}</option>
+          <option value="{{ g.id }}">{{ g.full_name }}</option>
         {% endfor %}
       </select>
     </div>
@@ -58,7 +58,7 @@
         <select name="time_existente_id" id="time-existente" class="form-select">
           <option value="">-- Nenhum --</option>
           {% for t in times %}
-            <option value="{{ t.id }}">{{ t.nome }}</option>
+            <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -74,7 +74,7 @@
       <label for="time-colaborador" class="form-label">Selecione seu Time</label>
       <select name="time_id" id="time-colaborador" class="form-select">
         {% for t in times %}
-          <option value="{{ t.id }}">{{ t.nome }}</option>
+          <option value="{{ t.id }}">{{ t.name }}</option>
         {% endfor %}
       </select>
     </div>
@@ -106,7 +106,7 @@ async function onCargoChange() {
     gerentes.forEach(g => {
       const opt = document.createElement("option");
       opt.value = g.id;
-      opt.textContent = g.nome;
+      opt.textContent = g.full_name;
       select.appendChild(opt);
     });
 
@@ -116,13 +116,13 @@ async function onCargoChange() {
   else if (role === "gerente") {
     const res = await fetch("/times/list");
     const times = await res.json();
-
     const select = document.getElementById("time-existente");
+
     select.innerHTML = `<option value="">-- Nenhum --</option>`;
     times.forEach(t => {
       const opt = document.createElement("option");
       opt.value = t.id;
-      opt.textContent = t.nome;
+      opt.textContent = t.name;
       select.appendChild(opt);
     });
 
@@ -132,13 +132,13 @@ async function onCargoChange() {
   else if (role === "colaborador") {
     const res = await fetch("/times/list");
     const times = await res.json();
-
+    document.getElementById("time-existente").disabled = true;
     const select = document.getElementById("time-colaborador");
-    select.innerHTML = "";
+    select.innerHTML = `<option value="">-- Nenhum --</option>`;
     times.forEach(t => {
       const opt = document.createElement("option");
       opt.value = t.id;
-      opt.textContent = t.nome;
+      opt.textContent = t.name;
       select.appendChild(opt);
     });
 
