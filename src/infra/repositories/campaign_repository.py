@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session, joinedload
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
+from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.domain.entities.campaign import Campaign
 from src.infra.database.models import UserModel
@@ -87,6 +88,16 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao
         )
 
-    def update(self, campaign: Campaign) -> None:
-        self.session.add(campaign)
+    def update(self, campaign: UpdateCampaignDTO) -> None:
+        db_campaign = self.session.query(CampanhaModel).get(campaign.id)
+        if not db_campaign:
+            raise Exception("Campanha não encontrada")
+
+        db_campaign.title = campaign.title
+        db_campaign.paragraph = campaign.paragraph
+        db_campaign.post_type = campaign.post_type
+        db_campaign.url = campaign.url
+        db_campaign.folder_url = campaign.folder_url
+        db_campaign.qrcode_url = campaign.qrcode_url
+
         self.session.commit()

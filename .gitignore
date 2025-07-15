@@ -1,1 +1,21 @@
 # .gitignore - exemplo
+# Imagens comuns
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+*.webp
+*.svg
+
+# Diretórios de imagens (opcional)
+images/
+imgs/
+assets/images/
+static/img/
+static/folders/
+static/outputs/
+static/qrcodes/
+static/uploads/

@@ -26,7 +26,7 @@ class UpdateCampaignUseCase:
         if not campaign:
             raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-        if user["role"] not in ["colaborador", "Gerente"]:
+        if user["role"] not in ["colaborador", "gerente"]:
             raise HTTPException(status_code=403, detail="Acesso negado")
 
         campaign.title = title

@@ -120,7 +120,7 @@ async def campaign_detail(
     campaign = campanha_repo.get_by_id(campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
-    if user["role"] not in ["colaborador", "Gerente"]:
+    if user["role"] not in ["colaborador", "gerente"]:
         return templates.TemplateResponse(
             "error.html",
             {"request": request, "message": "Acesso negado"},
@@ -134,7 +134,7 @@ async def campaign_detail(
         "user": user
     })
 
-@router.put("/edit/{campaign_id}", response_class=HTMLResponse)
+@router.post("/edit/{campaign_id}", response_class=HTMLResponse)
 @inject
 async def update_campaign(
     request: Request,
