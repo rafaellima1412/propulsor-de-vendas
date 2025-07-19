@@ -16,8 +16,10 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
-    # mantem no para o jinja mas no banco e full-name
-    nome: str = Field(..., alias="full_name")
+    full_name: str
+    status: Optional[str] = None
+    area: Optional[str] = None
+    descricao: Optional[str] = None
     time_id: Optional[int] = None
     time: Optional[TimeOut] = None
     campanhas: List[VendaSchema] = Field(default_factory=list)

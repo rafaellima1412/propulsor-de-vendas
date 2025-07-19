@@ -11,3 +11,6 @@ class VendaSchema(BaseModel):
     area: str
     descricao: str
     data_criacao: datetime = datetime.now(timezone.utc)
+
+    class Config:
+        from_attributes = True

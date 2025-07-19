@@ -1,7 +1,7 @@
 from typing import Optional
 
 from src.application.repositories.ITimeRepository import ITimeRepository
-from src.domain.entities.time_schema import TimeCreate
+from src.domain.entities.time_schema import TimeCreate, TimeUpdate
 from src.infra.database.models.time_model import TimeModel
 
 
@@ -22,11 +22,11 @@ class TimeRepository(ITimeRepository):
         self.db.refresh(new_time)
         return new_time
 
-    def update(self, time_id: int, data: TimeCreate):
+    def update(self, time_id: int, data: TimeUpdate):
         time = self.get_by_id(time_id)
         if not time:
             return None
-        for field, value in data.model_dump().items():
+        for field, value in data.model_dump(exclude_unset=True).items():
             setattr(time, field, value)
         self.db.commit()
         self.db.refresh(time)

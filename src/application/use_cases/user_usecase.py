@@ -3,10 +3,14 @@ from fastapi import HTTPException
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.application.repositories.iuser_repository import IUserRepository
-from src.domain.entities.time_schema import TimeCreate
+from src.domain.entities.time_schema import TimeCreate, TimeUpdate
 from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.user_model import UserModel
 from sqlalchemy.orm import Session
+
+
+
+
 
 class UserUseCase:
     def __init__(
@@ -18,6 +22,7 @@ class UserUseCase:
         self.time_repo = time_repo
 
     def create_user(self, user: UserCreateDTO) -> UserModel:
+        # print("📥 Dados recebidos:", user.model_dump())
         if self.user_repo.get_by_cpf(user.cpf):
             raise HTTPException(status_code=400, detail="CPF já está cadastrado.")
         if self.user_repo.get_by_username(user.username):
@@ -68,7 +73,8 @@ class UserUseCase:
                 times = self.time_repo.get_by_gerente(subordinado.id)
                 for time in times:
                     time.coo_id = new_user.id
-                    self.time_repo.update(time.id, time)
+                    time_update_data = TimeUpdate.from_orm(time)
+                    self.time_repo.update(time.id, time_update_data)
             else:
                 raise HTTPException(status_code=400, detail="COO deve selecionar um gerente subordinado.")
 

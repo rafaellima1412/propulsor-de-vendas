@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 class UserMinimal(BaseModel):
     id: int
     full_name: str
+    class Config:
+        from_attributes = True
 
 class TimeBase(BaseModel):
     name: str
@@ -22,3 +24,11 @@ class TimeOut(TimeBase):
     class Config:
         from_attributes = True
         populate_by_name = True
+
+class TimeUpdate(BaseModel):
+    name: Optional[str] = None
+    gerente_id: Optional[int] = None
+    coo_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True

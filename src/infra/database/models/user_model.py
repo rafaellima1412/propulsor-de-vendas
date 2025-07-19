@@ -14,6 +14,10 @@ class UserModel(Base):
     cpf = Column(String(14), unique=True)
     hashed_password = Column(String)
 
+    status = Column(String)
+    area = Column(String)
+    descricao = Column(String)
+
     time_id = Column(Integer, ForeignKey("times.id"), nullable=True)
 
     campanhas = relationship(

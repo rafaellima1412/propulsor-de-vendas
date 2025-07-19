@@ -1,20 +1,22 @@
 from typing import List
 from src.application.repositories.igerente_repository import IGerenteRepository
-from src.domain.entities.user_schema import UserBase, UserCreate
+from src.domain.entities.user_schema import UserBase, UserCreate, UserOut
+from src.infra.database.models import UserModel
 
 
 class GerenteUseCases:
     def __init__(self, repo: IGerenteRepository):
         self.repo = repo
 
-    def list_gerentes(self) -> List[UserBase]:
-        return self.repo.list_all()
+    def list_gerentes(self) -> List[UserOut]:
+        users = self.repo.list_all()
+        return [UserOut.from_orm(u) for u in users]
 
-    def create_gerente(self, data: UserCreate) -> UserBase:
-        novo_gerente = UserBase(**data.dict())
+    def create_gerente(self, data: UserCreate) -> UserOut:
+        novo_gerente = UserModel(**data.dict())
         return self.repo.create(novo_gerente)
 
-    def update_gerente(self, id: int, data: UserCreate) -> UserBase:
+    def update_gerente(self, id: int, data: UserCreate) -> UserOut:
         gerente = self.repo.get_by_id(id)
         if not gerente:
             raise ValueError("Gerente não encontrado")

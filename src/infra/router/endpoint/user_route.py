@@ -59,7 +59,7 @@ def register_user(
     role: str = Form(...),
     subordinado_id: Optional[int] = Form(None),
     novo_time: Optional[str] = Form(None),
-    time_existente_id: Optional[int] = Form(None),
+    time_existente_id: Optional[str] = Form(None),
     time_id: Optional[int] = Form(None),
 
 
@@ -78,12 +78,12 @@ def register_user(
             novo_time=novo_time,
             time_id=parse_optional_int(time_id),
         )
-        print("DEBUG create_user:", user_data)
+        # print("DEBUG create_user:", user_data)
         user_usecase.create_user(user_data)
         return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
 
     except HTTPException as e:
-        print("Pydantic validation error:", e.json())
+        print("Erro:", getattr(e, 'detail', str(e)))
         return templates.TemplateResponse(
             "register.html",
             {"request": request, "error": e.detail, "user": None},
@@ -168,6 +168,7 @@ async def post_register(
             novo_time=novo_time,
             time_id=parse_optional_int(time_id),
         )
+        print(f"POST register - novo_time: {novo_time!r}")
         user_usecase.create_user(user_data)
         return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
 
@@ -187,7 +188,8 @@ async def post_register(
 async def api_gerentes(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
 ):
-    return user_usecase.list_by_role("gerente")
+    gerentes = user_usecase.list_by_role("gerente")
+    return [UserOut.from_orm(u) for u in gerentes]
 
 
 @router.get("/logout")

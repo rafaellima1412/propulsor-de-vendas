@@ -14,6 +14,7 @@ class UserRepository(IUserRepository):
         self.db = db
 
     def create(self, user: UserCreateDTO):
+
         db_user = UserModel(
             username=user.username.strip(),
             full_name=user.full_name.strip(),
