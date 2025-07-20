@@ -1,4 +1,4 @@
-from pydantic import BaseModel, constr, Field
+from pydantic import BaseModel, constr, Field, ConfigDict
 from typing import List, Optional
 
 from src.domain.entities.campaign import Campaign
@@ -25,5 +25,4 @@ class UserOut(UserBase):
     time: Optional[TimeOut] = None
     campanhas: List[Campaign] = Field(default_factory=list)
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,13 +1,12 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class UserMinimal(BaseModel):
     id: int
     full_name: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TimeBase(BaseModel):
     name: str
@@ -21,14 +20,14 @@ class TimeOut(TimeBase):
     id: int
     gerente: Optional[UserMinimal] = None
     coo: Optional[UserMinimal] = None
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True
+    )
 
 class TimeUpdate(BaseModel):
     name: Optional[str] = None
     gerente_id: Optional[int] = None
     coo_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
