@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.domain.enums.enums import PlanoInternet, StatusVenda
 
@@ -10,7 +10,7 @@ class VendaSchema(BaseModel):
     status: StatusVenda
     area: str
     descricao: str
-    data_criacao: datetime = datetime.now(timezone.utc)
+    data_criacao: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:
         from_attributes = True

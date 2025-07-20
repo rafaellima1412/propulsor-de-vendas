@@ -1,6 +1,7 @@
 from pydantic import BaseModel, constr, Field
 from typing import List, Optional
 
+from src.domain.entities.campaign import Campaign
 from src.domain.entities.sales import VendaSchema
 from src.domain.entities.time_schema import TimeOut
 
@@ -16,13 +17,13 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
-    full_name: str
+    full_name: Optional[str] = None
     status: Optional[str] = None
     area: Optional[str] = None
     descricao: Optional[str] = None
     time_id: Optional[int] = None
     time: Optional[TimeOut] = None
-    campanhas: List[VendaSchema] = Field(default_factory=list)
+    campanhas: List[Campaign] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

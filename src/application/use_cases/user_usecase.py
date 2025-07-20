@@ -89,8 +89,8 @@ class UserUseCase:
     def list_by_role(self, role: str) -> List[UserModel]:
         return self.user_repo.get_by_role(role)
 
-    # def list_gerentes_by_coo(self, coo_id: int) -> List[UserModel]:
-    #     return self.user_repo.get_gerentes_by_coo(coo_id)
+    def list_gerentes_by_coo(self, coo_id: int) -> List[UserModel]:
+        return self.user_repo.get_gerentes_by_coo(coo_id)
     #
     # def list_times_ids_by_gerente(self, gerente_id: int) -> List[int]:
     #     return self.user_repo.get_times_ids_by_gerente(gerente_id)

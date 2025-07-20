@@ -189,7 +189,7 @@ async def api_gerentes(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
 ):
     gerentes = user_usecase.list_by_role("gerente")
-    return [UserOut.from_orm(u) for u in gerentes]
+    return [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
 
 
 @router.get("/logout")

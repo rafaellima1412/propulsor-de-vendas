@@ -11,3 +11,6 @@ class Campaign(BaseModel):
     folder_url: str
     qrcode_url: str
     data_criacao: datetime = datetime.now(timezone.utc)
+
+    class Config:
+        from_attributes = True
