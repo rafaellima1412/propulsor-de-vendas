@@ -67,6 +67,23 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
+
+    # def list_vendas_by_usuario_id(self, usuario_id: int) -> List[VendaModel]:
+    #     vendas = (
+    #         self.session.query(VendaModel)
+    #         .filter(VendaModel.usuario_id == usuario_id)
+    #         .all()
+    #     )
+    #     return vendas
+    #
+    # def list_carteira_by_usuario_id(self, usuario_id: int) -> List[CarteiraFinanceiraModel]:
+    #     carteira = (
+    #         self.session.query(CarteiraFinanceiraModel)
+    #         .filter(CarteiraFinanceiraModel.usuario_id == usuario_id)
+    #         .all()
+    #     )
+    #     return carteira
+
     def get_by_id(self, campanha_id: int) -> Campaign | None:
         db_campanha = (
             self.session.query(CampanhaModel)

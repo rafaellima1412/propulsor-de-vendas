@@ -17,3 +17,8 @@ class IVendaRepository(ABC):
     @abstractmethod
     def get_by_id(self, venda_id: int) -> Optional[VendaModel]:
         pass
+
+    @abstractmethod
+    def list_vendas_by_usuario_id(self, usuario_id: int) -> List[VendaModel]:
+        """Retorna todas as vendas pertencentes ao usuário."""
+        pass

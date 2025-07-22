@@ -57,14 +57,22 @@ async def form_page(
         db: Session = Depends(get_db),
         campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository])
 ):
+
+
+
+    # TODO finalizar repositorio e usacase
+
+    # vendas = venda_repo.list_vendas_by_usuario_id(user["id"])
+    # carteira = carteira_repo.list_carteira_by_usuario_id(user["id"])
     campanhas = campanha_repo.list_by_usuario_id(user["id"])
-    module = {
+    campanha = {
         "carousel_item": campanhas
     }
 
+    # TODO  separar vendas e carteira financeira--------------------------------
     resultados_plano = (
         db.query(VendaModel.area, func.count(VendaModel.id)).group_by(VendaModel.area)
-        .filter(VendaModel.status == "vendido")
+        .filter(VendaModel.status == "vendido", VendaModel.id == user["id"])
         .group_by(VendaModel.area)
         .all()
     )
@@ -78,7 +86,7 @@ async def form_page(
             extract('month', VendaModel.data_criacao).label("mes"),
             func.count(VendaModel.id)
         )
-        .filter(VendaModel.status == "vendido")
+        .filter(VendaModel.status == "vendido",VendaModel.id == user["id"] )
         .group_by("ano", "mes")
         .order_by("ano", "mes")
         .all()
@@ -95,19 +103,20 @@ async def form_page(
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
-        "module": module,
-        "area_colors": planos_cores,
-        "planos_labels": planos_labels,
-        "planos_data": planos_data,
-        "planos_cores": planos_cores,
-        "vendas_por_plano": vendas_por_plano,
-        "area_labels": planos_labels,
-        "area_data": area_data,
-        "area_colors": planos_cores,
-        "mes_labels": mes_labels,
-        "mes_data": mes_data,
+        "module": campanha,# carrosel de campanhas ja tem um filtro por usuario
+        "area_colors": planos_cores,# na montagem do grafico redondo ja tem um filtro por usuario
+        # "planos_labels": planos_labels,# onde e usado? ja tem um filtro por usuario????
+        # "planos_data": planos_data,# onde e usado? ja tem um filtro por usuario????
+        "planos_cores": planos_cores,# na montagem do grafico redondo ja tem um filtro por usuario
+        "vendas_por_plano": vendas_por_plano,# na montagem do grafico redondo ja tem um filtro por usuario
+        "area_labels": planos_labels,# vendas ja tem um filtro por usuario
+        "area_data": area_data,# vendas ja tem um filtro por usuario
+        "area_colors": planos_cores,# vendas ja tem um filtro por usuario
+        "mes_labels": mes_labels,# carteira ja tem um filtro por usuario
+        "mes_data": mes_data,# carteira ja tem um filtro por usuario
     })
 
+# -----------------------------------------------------------------------------------------------------------
 
 @router.get("/view/{campaign_id}", response_class=HTMLResponse)
 @inject
