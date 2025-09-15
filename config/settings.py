@@ -9,4 +9,4 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 os.makedirs(QR_FOLDER, exist_ok=True)
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-# print(BASE_DIR)
+print(BASE_DIR)

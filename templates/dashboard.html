@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - QR Market{% endblock %}
+{% block title %}Dashboard - Propulsor de Vendas{% endblock %}
 
 {% block content %}
 <!-- Vendas Positivadas -->
@@ -9,7 +9,7 @@
   <div class="col-md-6">
     <h5 class="mb-3"><i class="bi bi-bar-chart-line-fill text-primary me-1"></i> Vendas Positivadas</h5>
       <ul class="list-unstyled">
-        {% for plano, qtd in vendas_por_plano.items() %}
+        {% for plano, qtd in dashboard_data.vendas_por_plano.items() %}
           <li>
             <i class="bi bi-check-circle-fill me-1" style="color:{{ planos_cores[loop.index0] }}"></i>
             <strong>{{ plano }}</strong> - {{ qtd }} vendas
@@ -29,7 +29,7 @@
 <!--  <pre>{{ module | pprint }}</pre>-->
   {% for item in module.carousel_item %}
     <div class="col-md-4">
-      <a href="/campanhas/view/{{ item.id }}" class="text-decoration-none">
+      <a href="/campanhas/{{ item.id }}/view" class="text-decoration-none">
         <div class="card-surface text-center p-3 shadow-sm hover-shadow h-100">
           <div class="mb-3" style="
             height: 200px;
@@ -64,11 +64,12 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const areaLabels = {{ area_labels | tojson }};
-  const areaData = {{ area_data | tojson }};
-  const areaColors = {{ area_colors | tojson }};
-  const mes_data_label = {{ mes_data | tojson }};
-  const mes_label = {{ mes_labels | tojson }};
+  const areaLabels = {{ dashboard_data.area.labels | tojson }};
+  const areaData = {{ dashboard_data.area.data | tojson }};
+  const areaColors = {{ dashboard_data.area.colors | tojson }};
+  const mes_label = {{ dashboard_data.finance.labels | tojson }};
+  const mes_data_label = {{ dashboard_data.finance.data | tojson }};
+
 
   const areaChart = new Chart(document.getElementById('areaChart'), {
     type: 'doughnut',

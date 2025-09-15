@@ -24,7 +24,9 @@ async def lifespan(application: FastAPI):
     ])
     application.container = container
     yield
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan, title="Propulsor de vendas API",
+    description="API de gestão de campanhas, vendas e carteira financeira.",
+    version="1.0.0")
 app.include_router(v1_routers)
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")

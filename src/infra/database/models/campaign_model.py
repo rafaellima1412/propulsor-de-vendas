@@ -1,9 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from src.infra.database.base import Base
-
+from src.infra.database.models.campanha_time import campanha_time
 
 
 class CampanhaModel(Base):
@@ -15,6 +15,7 @@ class CampanhaModel(Base):
     image = Column(String, nullable=False)  # tem
     post_type = Column(String, nullable=True)
     url = Column(String, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
     folder_url = Column(String, nullable=True)
     qrcode_url = Column(String, nullable=True)
     data_criacao = Column(DateTime, default=datetime.now(timezone.utc))
@@ -28,4 +29,10 @@ class CampanhaModel(Base):
         "VendaModel",
         back_populates="campanha",
         cascade="all, delete-orphan"
+    )
+
+    times = relationship(
+        "TimeModel",
+        secondary=campanha_time,
+        back_populates="campanhas"
     )

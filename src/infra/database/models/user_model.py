@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from src.infra.database.base import Base
@@ -14,8 +14,7 @@ class UserModel(Base):
     cpf = Column(String(14), unique=True)
     hashed_password = Column(String)
 
-    status = Column(String)
-    area = Column(String)
+    is_active = Column(Boolean, nullable=False, default=True)
     descricao = Column(String)
 
     time_id = Column(Integer, ForeignKey("times.id"), nullable=True)
@@ -30,13 +29,13 @@ class UserModel(Base):
         "VendaModel",
         back_populates="usuario"
     )
-
+    # para reverse relations:
     times_gerenciados = relationship(
         "TimeModel",
         back_populates="gerente",
         foreign_keys="TimeModel.gerente_id"
     )
-
+    # para reverse relations:
     times_coordenados = relationship(
         "TimeModel",
         back_populates="coo",

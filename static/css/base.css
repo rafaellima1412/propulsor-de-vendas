@@ -9,15 +9,81 @@
   --muted-dark: #ccc;
 }
 
-body {
+/* ======== TEMA CLARO ======== */
+html[data-theme="light"] {
   background-color: var(--background-light);
   color: var(--text-light);
   font-family: 'Segoe UI', sans-serif;
   transition: background-color 0.3s, color 0.3s;
 }
 
-.content-container {
+html[data-theme="light"] .content-container,
+html[data-theme="light"] .card-surface,
+html[data-theme="light"] .card-explicativa,
+html[data-theme="light"] .form-container {
   background-color: var(--card-light);
+  color: var(--text-light);
+}
+
+html[data-theme="light"] h1,
+html[data-theme="light"] h2,
+html[data-theme="light"] h3,
+html[data-theme="light"] h4,
+html[data-theme="light"] h5,
+html[data-theme="light"] h6,
+html[data-theme="light"] .fw-bold,
+html[data-theme="light"] .fw-semibold {
+  color: var(--text-light) !important;
+}
+
+html[data-theme="light"] .text-muted {
+  color: var(--muted-light) !important;
+}
+
+html[data-theme="light"] .navbar {
+  background-color: var(--card-light) !important;
+  color: var(--text-light);
+}
+
+/* ======== TEMA ESCURO ======== */
+html[data-theme="dark"] {
+  background-color: var(--background-dark);
+  color: var(--text-dark);
+  font-family: 'Segoe UI', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+html[data-theme="dark"] .content-container,
+html[data-theme="dark"] .card-surface,
+html[data-theme="dark"] .card-explicativa,
+html[data-theme="dark"] .form-container {
+  background-color: var(--card-dark);
+  color: var(--text-dark);
+}
+
+html[data-theme="dark"] h1,
+html[data-theme="dark"] h2,
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4,
+html[data-theme="dark"] h5,
+html[data-theme="dark"] h6,
+html[data-theme="dark"] .fw-bold,
+html[data-theme="dark"] .fw-semibold,
+html[data-theme="dark"] .text-dark {
+  color: var(--text-dark) !important;
+}
+
+html[data-theme="dark"] .text-muted {
+  color: var(--muted-dark) !important;
+}
+
+html[data-theme="dark"] .navbar {
+  background-color: var(--card-dark) !important;
+  color: var(--text-dark);
+}
+
+/* ======== ELEMENTOS GENÉRICOS ======== */
+.content-container {
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -25,7 +91,6 @@ body {
 }
 
 .card-surface {
-  background-color: var(--card-light);
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   transition: background-color 0.3s;
@@ -36,29 +101,101 @@ body {
   transform: translateY(-2px);
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: var(--background-dark);
-    color: var(--text-dark);
-  }
-
-  .content-container,
-  .card-surface {
-    background-color: var(--card-dark);
-    color: var(--text-dark);
-  }
-
-  h1, h2, h3, h4, h5, h6,
-  .fw-bold, .fw-semibold,
-  .text-dark {
-    color: var(--text-dark) !important;
-  }
-
-  .text-muted {
-    color: var(--muted-dark) !important;
-  }
-}
 .navbar-brand.text-black {
   color: #000 !important;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3); /* Leve sombra clara */
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.card-action {
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+  user-select: none;
+}
+
+.card-action img {
+  display: block;
+  margin: 0 auto 0.5rem auto;
+}
+
+.card-action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-action:hover {
+  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.08);
+}
+
+/* ======== SEÇÃO COMO FUNCIONA ======== */
+.como-funciona-section {
+  background-color: #007bff;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.titulo-como-funciona {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.card-link-button {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-explicativa {
+  border-radius: 20px;
+  padding: 1.5rem 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-explicativa:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.card-explicativa img {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1rem;
+}
+
+.card-explicativa p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* ======== FORMULÁRIO CAMPANHA ======== */
+.form-container {
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: background-color 0.3s;
+}
+
+.form-title {
+  font-weight: 600;
+}
+
+.qr-preview {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 3px solid #dee2e6;
+  background-color: white;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  opacity: 0;
+  animation: fadeIn 1s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
 }

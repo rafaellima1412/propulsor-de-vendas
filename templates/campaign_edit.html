@@ -32,7 +32,7 @@
       </div>
     {% endif %}
 
-    <form method="post" action="/campanhas/edit/{{ campaign.id }}" enctype="multipart/form-data">
+    <form method="post" action="/campanhas/{{ campaign.id }}/edit" enctype="multipart/form-data">
       <div class="mb-3">
         <label for="title" class="form-label">Título:</label>
         <input type="text" name="title" id="title" required class="form-control" value="{{ campaign.title }}">
@@ -54,23 +54,13 @@
       </div>
 
       <div class="mb-3">
-        <label for="post_type" class="form-label">Tipo de Post:</label>
-        <input type="text" class="form-control" name="post_type" id="post_type" value="{{ campaign.post_type or '' }}">
-      </div>
-
-      <div class="mb-3">
-        <label for="folder_url" class="form-label">URL do Folder:</label>
-        <input type="text" class="form-control" name="folder_url" id="folder_url" value="{{ campaign.folder_url or '' }}">
-      </div>
-
-      <div class="mb-3">
-        <label for="qrcode_url" class="form-label">URL do QR Code:</label>
-        <input type="text" class="form-control" name="qrcode_url" id="qrcode_url" value="{{ campaign.qrcode_url or '' }}">
-      </div>
-
-      <div class="mb-3">
-        <label for="url" class="form-label">URL principal:</label>
-        <input type="text" class="form-control" name="url" id="url" value="{{ campaign.url or '' }}">
+        <label for="time-existente" class="form-label">Selecionar Time Existente</label>
+        <select name="time_existente_id" id="time-existente" class="form-select">
+          <option value="">-- Nenhum --</option>
+          {% for t in times %}
+            <option value="{{ t.id }}" {% if campaign.time_id == t.id %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
       </div>
 
       <div class="text-center">

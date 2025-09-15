@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class CampanhaCreateDTO(BaseModel):
     title: str
     paragraph: str
-    image: str
+    image: str | None = None
     cpf_usuario: str
     post_type: str | None = None
     url: str | None = None

@@ -2,16 +2,22 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
+from src.domain.entities.local_schema import  LocalResumoSchema
+
 
 class UserMinimal(BaseModel):
     id: int
     full_name: str
+
     model_config = ConfigDict(from_attributes=True)
 
 class TimeBase(BaseModel):
     name: str
+    local: Optional[LocalResumoSchema]
     gerente_id: int
     coo_id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 class TimeCreate(TimeBase):
     pass

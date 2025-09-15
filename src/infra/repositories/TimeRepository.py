@@ -2,6 +2,7 @@ from typing import Optional
 
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.domain.entities.time_schema import TimeCreate, TimeUpdate
+from src.infra.database.models import UserModel
 from src.infra.database.models.time_model import TimeModel
 
 
@@ -46,3 +47,9 @@ class TimeRepository(ITimeRepository):
 
     def get_by_name(self, name: str) -> Optional[TimeModel]:
         return self.db.query(TimeModel).filter(TimeModel.name == name).first()
+
+    def list_by_user_id(self, user_id: int) -> list[TimeModel]:
+        db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not db_user:
+            return []
+        return  [db_user.time]

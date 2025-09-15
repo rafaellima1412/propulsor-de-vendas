@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
 
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
+from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.gerente_usecase import GerenteUseCases
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
@@ -40,7 +41,7 @@ class Container(containers.DeclarativeContainer):
 
     campanha_repository = providers.Factory(
         CampanhaRepository,
-        session=db_session
+        db=db_session
     )
     gerente_repository = providers.Factory(
         GerenteRepository,
@@ -51,6 +52,11 @@ class Container(containers.DeclarativeContainer):
         TimeRepository,
         db_session=db_session
     )
+    carteira_repository = providers.Factory(
+        TimeRepository,
+        db_session=db_session
+    )
+
     user_usecase = providers.Factory(
         UserUseCase,
         user_repo=user_repository,
@@ -80,4 +86,10 @@ class Container(containers.DeclarativeContainer):
     time_usecase = providers.Factory(
         TimeUseCase,
         time_repository=time_repository,
+    )
+    dashboard_usecase = providers.Factory(
+        DashboardUseCase,
+        campanha_repo=campanha_repository,
+        venda_repo=venda_repository,
+        carteira_repo=carteira_repository
     )

@@ -25,21 +25,21 @@
       </div>
     {% endif %}
 
-    <form method="post" action="/campanhas/cadastro" enctype="multipart/form-data">
+    <form method="post" action="/campanhas/create" enctype="multipart/form-data">
       <div class="mb-3">
         <label for="title" class="form-label">Título:</label>
         <input type="text" name="title" id="title" required class="form-control" value="{{ title or '' }}">
       </div>
 
-      <div class="mb-3">
-        <label for="cpf" class="form-label">CPF:</label>
-        <input type="text" name="cpf" id="cpf" required class="form-control" value="{{ cpf or '' }}">
-      </div>
+<!--      <div class="mb-3">-->
+<!--        <label for="cpf" class="form-label">CPF:</label>-->
+<!--        <input type="text" name="cpf" id="cpf" required class="form-control" value="{{ cpf or '' }}">-->
+<!--      </div>-->
 
-      <div class="mb-3">
-        <label for="matricula" class="form-label">Matrícula:</label>
-        <input type="text" name="matricula" id="matricula" required class="form-control" value="{{ matricula or '' }}">
-      </div>
+<!--      <div class="mb-3">-->
+<!--        <label for="matricula" class="form-label">Matrícula:</label>-->
+<!--        <input type="text" name="matricula" id="matricula" required class="form-control" value="{{ matricula or '' }}">-->
+<!--      </div>-->
 
       <div class="mb-3">
         <label for="folder_image" class="form-label">Imagem do Folder:</label>

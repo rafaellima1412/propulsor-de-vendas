@@ -19,7 +19,6 @@ class UserOut(UserBase):
     id: int
     full_name: Optional[str] = None
     status: Optional[str] = None
-    area: Optional[str] = None
     descricao: Optional[str] = None
     time_id: Optional[int] = None
     time: Optional[TimeOut] = None

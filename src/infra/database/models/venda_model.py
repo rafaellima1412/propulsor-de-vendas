@@ -14,7 +14,6 @@ class VendaModel(Base):
     plano = Column(Enum(PlanoInternet), nullable=False)
     status = Column(Enum(StatusVenda), nullable=False)
 
-    area = Column(String, nullable=False)
     descricao = Column(String, nullable=True)
 
     cpf_vendedor = Column(String(14), nullable=False)

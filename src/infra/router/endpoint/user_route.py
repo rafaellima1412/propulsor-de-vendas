@@ -8,7 +8,7 @@ from starlette import status
 from starlette.responses import RedirectResponse, HTMLResponse, JSONResponse
 from starlette.templating import Jinja2Templates
 
-from src.application.auth.auth import authenticate_user, create_access_token
+from src.application.auth.auth import authenticate_user, create_access_token, get_current_user
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.use_cases.gerente_usecase import GerenteUseCases
 from src.application.use_cases.user_usecase import UserUseCase
@@ -44,9 +44,7 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
     return usecase.list_users()
 
 
-@router.get("/register")
-def show_register_form(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "user": None})
+
 
 @router.post("/register")
 @inject
@@ -121,25 +119,16 @@ def login_web(request: Request, username: str = Form(...), password: str = Form(
             "sub": user["username"],
             "role": user["role"]
         })
-        response = RedirectResponse(url="/campanhas/dashboard", status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url="/pagina/inicial", status_code=status.HTTP_302_FOUND)
         response.set_cookie("access_token", f"Bearer {access_token}", httponly=True,secure=True, samesite="Lax")
         return response
     return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciais inválidas", "user": None})
-@router.get("/register", response_class=HTMLResponse)
-@inject
-async def get_register(
-    request: Request,
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
-):
-    gerentes = await user_usecase.list_gerentes()
-    times = await user_usecase.list_times()
 
-    return templates.TemplateResponse("register.html", {
-        "request": request,
-        "gerentes": gerentes,
-        "times": times,
-        "error": None
-    })
+
+@router.get("/register")
+def show_register_form(request: Request, user: dict = Depends(get_current_user),):
+    return templates.TemplateResponse("register.html", {"request": request, "user": user})
+
 @router.post("/register", response_class=HTMLResponse)
 @inject
 async def post_register(
@@ -198,7 +187,7 @@ def logout():
     response.delete_cookie("access_token")
     return response
 
-@router.get("/user/register", response_class=HTMLResponse)
+@router.get("/register", response_class=HTMLResponse)
 @inject
 async def get_register(
     request: Request,

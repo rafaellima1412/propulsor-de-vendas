@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infra.database.base import Base
 from src.infra.database.models import UserModel
+from src.infra.database.models.campanha_time import campanha_time
 
 
 class TimeModel(Base):
@@ -11,6 +12,10 @@ class TimeModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
 
+    local_id: Mapped[int] = mapped_column(ForeignKey('locais.id'), nullable=True)
+
+    local: Mapped["Local"] = relationship("Local", back_populates="times")
+    
     gerente_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     gerente = relationship(
         "UserModel",
@@ -33,3 +38,9 @@ class TimeModel(Base):
         back_populates="time",
         foreign_keys=[UserModel.time_id]
     )
+    campanhas = relationship(
+        "CampanhaModel",
+        secondary=campanha_time,
+        back_populates="times"
+    )
+

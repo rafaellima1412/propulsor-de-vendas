@@ -30,3 +30,6 @@ class TimeUseCase:
 
     def get_times_by_gerente(self, gerente_id: int) -> List[TimeOut]:
         return self.time_repository.get_by_gerente(gerente_id)
+
+    def get_times_by_user(self, user_id: int) -> List[TimeOut]:
+        return  self.time_repository.list_by_user_id(user_id)

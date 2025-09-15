@@ -1,15 +1,20 @@
-from pydantic import BaseModel, ConfigDict
+
+from typing import Optional, List
+
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime, timezone
 
 class Campaign(BaseModel):
     id: int
     title: str
     paragraph: str
-    post_type: str
-    url: str
-    image: str
-    folder_url: str
-    qrcode_url: str
-    data_criacao: datetime = datetime.now(timezone.utc)
+    image: str | None = None
+    times: Optional[List[int]] = []
+    post_type: Optional[str] = None
+    url: Optional[str] = None
+    folder_url: Optional[str] = None
+    qrcode_url: Optional[str] = None
+    is_active: bool
+    data_criacao: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = ConfigDict(from_attributes=True)

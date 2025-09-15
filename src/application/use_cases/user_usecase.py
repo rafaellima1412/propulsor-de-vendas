@@ -8,10 +8,6 @@ from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.user_model import UserModel
 from sqlalchemy.orm import Session
 
-
-
-
-
 class UserUseCase:
     def __init__(
         self,

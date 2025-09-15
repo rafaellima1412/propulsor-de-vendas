@@ -1,25 +1,25 @@
-import calendar
 import os
-from typing import Optional
+from typing import Optional, List
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Form, Request, UploadFile, File, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 from starlette.responses import RedirectResponse
 
 from config.settings import BASE_DIR
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
+from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.services.qr_code_generator import generate_folder_with_qr
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
+from src.application.use_cases.dashboard_usecase import DashboardUseCase
+from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
-from src.domain.enums.enums import PlanoInternet
 from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.database.db import get_db
-from src.infra.database.models import VendaModel
+from src.infra.database.models import UserModel
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
 
@@ -38,7 +38,7 @@ def campaign_to_dict(campaign):
         "usuario_id": campaign.usuario_id,
         "data_criacao": campaign.data_criacao.strftime("%Y-%m-%d %H:%M:%S") if campaign.data_criacao else None,
     }
-@router.get("/cadastro", response_class=HTMLResponse)
+@router.get("/new", response_class=HTMLResponse)
 async def show_campaign_form(request: Request):
     return templates.TemplateResponse("campaign_create.html", {
         "request": request,
@@ -49,87 +49,43 @@ async def show_campaign_form(request: Request):
         "errors": [],
     })
 
-@router.get("/dashboard", response_class=HTMLResponse)
+@router.get("/by-usuario", response_class=HTMLResponse)
 @inject
 async def form_page(
-        request: Request,
-        user: dict = Depends(get_current_user),
-        db: Session = Depends(get_db),
-        campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository])
+    request: Request,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    dashboard_usecase: DashboardUseCase = Depends(Provide[Container.dashboard_usecase]),
 ):
+    time_id = db.query(UserModel.time_id).filter(UserModel.id == user["id"]).scalar()
 
-
-
-    # TODO finalizar repositorio e usacase
-
-    # vendas = venda_repo.list_vendas_by_usuario_id(user["id"])
-    # carteira = carteira_repo.list_carteira_by_usuario_id(user["id"])
-    campanhas = campanha_repo.list_by_usuario_id(user["id"])
-    campanha = {
-        "carousel_item": campanhas
-    }
-
-    # TODO  separar vendas e carteira financeira--------------------------------
-    resultados_plano = (
-        db.query(VendaModel.area, func.count(VendaModel.id)).group_by(VendaModel.area)
-        .filter(VendaModel.status == "vendido", VendaModel.id == user["id"])
-        .group_by(VendaModel.area)
-        .all()
-    )
-    vendas_por_plano = {
-        plano.value if isinstance(plano, PlanoInternet) else plano: count
-        for plano, count in resultados_plano
-    }
-    resultados_por_mes = (
-        db.query(
-            extract('year', VendaModel.data_criacao).label("ano"),
-            extract('month', VendaModel.data_criacao).label("mes"),
-            func.count(VendaModel.id)
-        )
-        .filter(VendaModel.status == "vendido",VendaModel.id == user["id"] )
-        .group_by("ano", "mes")
-        .order_by("ano", "mes")
-        .all()
-    )
-    mes_labels = [f"{calendar.month_abbr[int(mes)].capitalize()}/{int(ano)}" for ano, mes, _ in resultados_por_mes]
-    mes_data = [count for _, _, count in resultados_por_mes]
-
-    planos_labels = [plano for plano, _ in resultados_plano]
-    planos_data = [count for _, count in resultados_plano]
-    planos_cores = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6'][:len(planos_labels)]
-    area_data = planos_data
-
+    resultado = dashboard_usecase.get_dashboard_data(user_id=user["id"], time_id=time_id)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
-        "module": campanha,# carrosel de campanhas ja tem um filtro por usuario
-        "area_colors": planos_cores,# na montagem do grafico redondo ja tem um filtro por usuario
-        # "planos_labels": planos_labels,# onde e usado? ja tem um filtro por usuario????
-        # "planos_data": planos_data,# onde e usado? ja tem um filtro por usuario????
-        "planos_cores": planos_cores,# na montagem do grafico redondo ja tem um filtro por usuario
-        "vendas_por_plano": vendas_por_plano,# na montagem do grafico redondo ja tem um filtro por usuario
-        "area_labels": planos_labels,# vendas ja tem um filtro por usuario
-        "area_data": area_data,# vendas ja tem um filtro por usuario
-        "area_colors": planos_cores,# vendas ja tem um filtro por usuario
-        "mes_labels": mes_labels,# carteira ja tem um filtro por usuario
-        "mes_data": mes_data,# carteira ja tem um filtro por usuario
+        "module": {
+            "carousel_item": resultado["campanhas"]
+        },
+        "dashboard_data": resultado["dashboard_data"],
+        "planos_cores": resultado["planos_cores"],
     })
 
-# -----------------------------------------------------------------------------------------------------------
-
-@router.get("/view/{campaign_id}", response_class=HTMLResponse)
+@router.get("/{campaign_id}/view", response_class=HTMLResponse)
 @inject
 async def campaign_detail(
     request: Request,
     campaign_id: int,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     campaign = campanha_repo.get_by_id(campaign_id)
+
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
-    if user["role"] not in ["colaborador", "gerente"]:
+
+    if user["role"] not in ["colaborador", "gerente", "coo"]:
         return templates.TemplateResponse(
             "error.html",
             {"request": request, "message": "Acesso negado"},
@@ -137,19 +93,23 @@ async def campaign_detail(
         )
     template_name = "campaign_detail.html" if user["role"] == "colaborador" else "campaign_edit.html"
 
+    user_times = time_usecase.get_times_by_user(user["id"])
+    # print(f"ID: {user_times.id}, Nome: {user_times.name}")
     return templates.TemplateResponse(template_name, {
         "request": request,
         "campaign": campaign,
-        "user": user
+        "user": user,
+        "times": user_times,
     })
 
-@router.post("/edit/{campaign_id}", response_class=HTMLResponse)
+@router.post("/{campaign_id}/edit", response_class=HTMLResponse)
 @inject
 async def update_campaign(
     request: Request,
     campaign_id: int,
-    title: str = Form(...),
-    paragraph: str = Form(...),
+    title: Optional[str] = Form(None),
+    paragraph: Optional[str] = Form(None),
+    time_ids: List[int] = Form(...),
     post_type: Optional[str] = Form(None),
     url: Optional[str] = Form(None),
     folder_url: Optional[str] = Form(None),
@@ -157,15 +117,20 @@ async def update_campaign(
     user: dict = Depends(get_current_user),
     use_case: UpdateCampaignUseCase = Depends(Provide[Container.update_campaign_use_case]),
 ):
-    campaign = use_case.execute(
-        user=user,
-        campaign_id=campaign_id,
+
+    update_dto = UpdateCampaignDTO(
         title=title,
         paragraph=paragraph,
+        time_ids=time_ids,
         post_type=post_type,
         url=url,
         folder_url=folder_url,
-        qrcode_url=qrcode_url,
+        qrcode_url=qrcode_url
+    )
+    campaign = use_case.execute(
+        user=user,
+        campaign_id=campaign_id,
+        update_dto=update_dto
     )
 
     return templates.TemplateResponse("campaign_edit.html", {
@@ -175,7 +140,7 @@ async def update_campaign(
         "message": "Campanha atualizada com sucesso!"
     })
 
-@router.post("/cadastro", response_class=HTMLResponse, response_model=None)
+@router.post("/create", response_class=HTMLResponse, response_model=None)
 @inject
 async def generate(
         request: Request,
@@ -214,7 +179,7 @@ async def generate(
             dto = CampanhaCreateDTO(**clean_data)
             use_case.execute(dto)
 
-            return RedirectResponse(url="/campanhas/dashboard", status_code=302)
+            return RedirectResponse(url="/campanhas/by-usuario", status_code=302)
 
         except ValueError as e:
             errors.append(str(e))
