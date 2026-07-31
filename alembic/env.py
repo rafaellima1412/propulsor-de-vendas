@@ -6,10 +6,16 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.infra.database.base import Base
+from src.infra.settings.settings import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override the hardcoded sqlalchemy.url from alembic.ini with the value
+# built from environment variables (.env), so no credentials live in
+# version-controlled config files.
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -86,4 +92,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-
