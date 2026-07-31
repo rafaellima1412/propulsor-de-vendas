@@ -112,7 +112,10 @@ def reset_password(request: Request, cpf: str = Form(...)):
 
 
 @router.post("/cadastro", response_class=HTMLResponse)
-def login_web(request: Request, username: str = Form(...), password: str = Form(...)):
+def login_web(
+        request: Request,
+        username: str = Form(...),
+        password: str = Form(...)):
     user = authenticate_user(username, password)
     if user:
         access_token = create_access_token(data={
