@@ -21,6 +21,7 @@ class TimeRepository(ITimeRepository):
         self.db.add(new_time)
         self.db.commit()
         self.db.refresh(new_time)
+        self.db.close()
         return new_time
 
     def update(self, time_id: int, data: TimeUpdate):
@@ -31,6 +32,7 @@ class TimeRepository(ITimeRepository):
             setattr(time, field, value)
         self.db.commit()
         self.db.refresh(time)
+        self.db.close()
         return time
 
     def delete(self, time_id: int):
@@ -38,6 +40,7 @@ class TimeRepository(ITimeRepository):
         if time:
             self.db.delete(time)
             self.db.commit()
+            self.db.close()
 
     def get_by_coo(self, coo_id: int):
         return self.db.query(TimeModel).filter_by(coo_id=coo_id).all()

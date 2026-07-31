@@ -14,7 +14,7 @@ class Campaign(BaseModel):
     url: Optional[str] = None
     folder_url: Optional[str] = None
     qrcode_url: Optional[str] = None
-    is_active: bool
+    is_active: bool = True
     data_criacao: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = ConfigDict(from_attributes=True)

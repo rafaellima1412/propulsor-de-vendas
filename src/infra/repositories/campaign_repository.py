@@ -44,7 +44,9 @@ class CampanhaRepository(ICampanhaRepository):
             self.db.commit()
             self.db.refresh(db_campanha)
 
-            return Campaign.from_orm(db_campanha)
+            campaign = Campaign.from_orm(db_campanha)
+            self.db.close()
+            return campaign
 
             # return Campaign(
             #     id=db_campanha.id,
@@ -145,4 +147,3 @@ class CampanhaRepository(ICampanhaRepository):
         self.db.refresh(db_campaign)
 
         return Campaign.from_orm(db_campaign)
-
