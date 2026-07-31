@@ -84,7 +84,13 @@ def register_user(
         print("Erro:", getattr(e, 'detail', str(e)))
         return templates.TemplateResponse(
             "register.html",
-            {"request": request, "error": e.detail, "user": None},
+            {
+                "request": request,
+                "error": e.detail,
+                "user": None,
+                "gerentes": user_usecase.list_by_role("gerente"),
+                "time": user_usecase.list_all_times(),
+            },
         )
 
 @router.get("/forgot-password")
@@ -129,8 +135,18 @@ def login_web(
 
 
 @router.get("/register")
-def show_register_form(request: Request, user: dict = Depends(get_current_user),):
-    return templates.TemplateResponse("register.html", {"request": request, "user": user})
+@inject
+def show_register_form(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    return templates.TemplateResponse("register.html", {
+        "request": request,
+        "user": user,
+        "gerentes": user_usecase.list_by_role("gerente"),
+        "time": user_usecase.list_all_times(),
+    })
 
 @router.get("/gerentes", response_model=List[UserOut])
 @inject

@@ -27,7 +27,10 @@ class Container(containers.DeclarativeContainer):
         ]
     )
 
-    db_session = providers.Resource(SessionLocal)
+    # Each resolution gets its own Session (see session.py for why this
+    # can't safely be a shared/request-scoped Session in this stack).
+    # Repositories close their session right after committing.
+    db_session = providers.Factory(SessionLocal)
 
     user_repository = providers.Factory(
         UserRepository,
