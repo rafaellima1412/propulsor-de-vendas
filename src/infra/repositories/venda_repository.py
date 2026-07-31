@@ -32,9 +32,9 @@ class VendaRepository:
 
     def contagem_por_plano(self, user_id: int) -> Dict[str, int]:
         resultados = (
-            self.db.query(VendaModel.area, func.count(VendaModel.id))
+            self.db.query(VendaModel.plano, func.count(VendaModel.id))
             .filter(VendaModel.status == "vendido", VendaModel.usuario_id == user_id)
-            .group_by(VendaModel.area)
+            .group_by(VendaModel.plano)
             .all()
         )
         return {

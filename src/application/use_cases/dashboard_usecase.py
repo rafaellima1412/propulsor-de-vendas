@@ -1,5 +1,5 @@
 # application/usecases/dashboard_usecase.py
-from calendar import calendar
+import calendar
 
 from src.application.repositories.ICarteiraRepository import ICarteiraRepository
 from src.application.repositories.icampaign_repository import ICampanhaRepository
