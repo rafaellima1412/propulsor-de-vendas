@@ -132,49 +132,6 @@ def login_web(
 def show_register_form(request: Request, user: dict = Depends(get_current_user),):
     return templates.TemplateResponse("register.html", {"request": request, "user": user})
 
-@router.post("/register", response_class=HTMLResponse)
-@inject
-async def post_register(
-    request: Request,
-    username: str = Form(...),
-    full_name: str = Form(...),
-    cpf: str = Form(...),
-    password: str = Form(...),
-    role: str = Form(...),
-    subordinado_id: Optional[int] = Form(None),
-    time_existente_id: Optional[int] = Form(None),
-    novo_time: Optional[str] = Form(None),
-    time_id: Optional[int] = Form(None),
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
-):
-    try:
-        hashed_password = pwd_context.hash(password)
-        user_data = UserCreateDTO(
-            username=username,
-            full_name=full_name,
-            cpf=cpf,
-            hashed_password=hashed_password,
-            role=role,
-            subordinado_id=parse_optional_int(subordinado_id),
-            time_existente_id=parse_optional_int(time_existente_id),
-            novo_time=novo_time,
-            time_id=parse_optional_int(time_id),
-        )
-        print(f"POST register - novo_time: {novo_time!r}")
-        user_usecase.create_user(user_data)
-        return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
-
-    except Exception as e:
-        gerentes = await user_usecase.list_gerentes()
-        times = await user_usecase.list_times()
-
-        return templates.TemplateResponse("register.html", {
-            "request": request,
-            "gerentes": gerentes,
-            "times": times,
-            "error": str(e)
-        })
-
 @router.get("/gerentes", response_model=List[UserOut])
 @inject
 async def api_gerentes(
@@ -189,20 +146,3 @@ def logout():
     response = RedirectResponse(url="/", status_code=302)
     response.delete_cookie("access_token")
     return response
-
-@router.get("/register", response_class=HTMLResponse)
-@inject
-async def get_register(
-    request: Request,
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
-):
-    gerentes = await user_usecase.list_gerentes()
-    times = await user_usecase.list_times()
-
-    return templates.TemplateResponse("register.html", {
-        "request": request,
-        "gerentes": gerentes,
-        "times": times,
-        "error": None
-    })
-
