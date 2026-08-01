@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from jose import jwt
 
-from src.application.auth.auth import create_access_token, verify_password, pwd_context
+from src.application.auth.auth import create_access_token, pwd_context, verify_password
 from src.infra.settings.settings import settings
 
 pytestmark = pytest.mark.unit
@@ -33,9 +33,7 @@ def test_create_access_token_contains_expected_claims():
 
 
 def test_create_access_token_respects_custom_expiration():
-    token = create_access_token(
-        data={"sub": "rafael"}, expires_delta=timedelta(minutes=1)
-    )
+    token = create_access_token(data={"sub": "rafael"}, expires_delta=timedelta(minutes=1))
 
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     assert payload["sub"] == "rafael"

@@ -1,14 +1,13 @@
-from typing import List
 from src.application.repositories.igerente_repository import IGerenteRepository
-from src.domain.entities.user_schema import UserBase, UserCreate, UserOut
-from src.infra.database.models import UserModel
+from src.domain.entities.user_schema import UserCreate, UserOut
+from src.infra.database.models.user_model import UserModel
 
 
 class GerenteUseCases:
     def __init__(self, repo: IGerenteRepository):
         self.repo = repo
 
-    def list_gerentes(self) -> List[UserOut]:
+    def list_gerentes(self) -> list[UserOut]:
         users = self.repo.list_all()
         return [UserOut.from_orm(u) for u in users]
 

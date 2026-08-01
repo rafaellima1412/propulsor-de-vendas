@@ -1,5 +1,7 @@
-from pydantic_settings import BaseSettings
 from urllib.parse import quote_plus
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     POSTGRES_USER: str
@@ -11,16 +13,17 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+    )
+
     @property
     def database_url(self) -> str:
         user = quote_plus(self.POSTGRES_USER)
         password = quote_plus(self.POSTGRES_PASSWORD)
-        host = self.DB_HOST
-        port = self.DB_PORT
-        db = self.POSTGRES_DB
 
-        return f"postgresql://{user}:{password}@{host}:{port}/{db}"
-    class Config:
-        env_file = ".env"
+        return f"postgresql://{user}:{password}" f"@{self.DB_HOST}:{self.DB_PORT}/{self.POSTGRES_DB}"
+
 
 settings = Settings()

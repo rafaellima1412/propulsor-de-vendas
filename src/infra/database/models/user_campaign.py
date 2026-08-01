@@ -1,4 +1,5 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey
+from sqlalchemy import Column, ForeignKey, Integer, Table
+
 from src.infra.database.base import Base
 
 user_campanha = Table(

@@ -1,6 +1,5 @@
 from fastapi import HTTPException
 
-
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.domain.entities.campaign import Campaign
@@ -21,7 +20,7 @@ class UpdateCampaignUseCase:
         if not campaign:
             raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-        if user["role"] not in ["colaborador", "gerente"]:# somente coo e gerente pode editar campanha
+        if user["role"] not in ["colaborador", "gerente"]:  # somente coo e gerente pode editar campanha
             raise HTTPException(status_code=403, detail="Acesso negado")
 
         campaign.title = update_dto.title

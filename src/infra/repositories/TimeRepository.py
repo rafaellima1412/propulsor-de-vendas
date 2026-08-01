@@ -1,8 +1,6 @@
-from typing import Optional
-
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.domain.entities.time_schema import TimeCreate, TimeUpdate
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.time_model import TimeModel
 
 
@@ -48,11 +46,11 @@ class TimeRepository(ITimeRepository):
     def get_by_gerente(self, gerente_id: int):
         return self.db.query(TimeModel).filter_by(gerente_id=gerente_id).all()
 
-    def get_by_name(self, name: str) -> Optional[TimeModel]:
+    def get_by_name(self, name: str) -> TimeModel | None:
         return self.db.query(TimeModel).filter(TimeModel.name == name).first()
 
     def list_by_user_id(self, user_id: int) -> list[TimeModel]:
         db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
         if not db_user:
             return []
-        return  [db_user.time]
+        return [db_user.time]

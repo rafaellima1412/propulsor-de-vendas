@@ -1,7 +1,8 @@
+from datetime import UTC, datetime
 
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey,DateTime
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
+
 from src.domain.enums.enums import PlanoInternet, StatusVenda
 from src.infra.database.base import Base
 
@@ -18,7 +19,7 @@ class VendaModel(Base):
 
     cpf_vendedor = Column(String(14), nullable=False)
 
-    data_criacao = Column(DateTime, default=datetime.now(timezone.utc))
+    data_criacao = Column(DateTime, default=datetime.now(UTC))
 
     usuario_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     campanha_id = Column(Integer, ForeignKey("campanhas.id"), nullable=False)

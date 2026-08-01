@@ -1,10 +1,8 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
 from src.infra.database.base import Base
 from src.infra.settings.settings import settings
 
@@ -33,10 +31,12 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and name in ('spatial_ref_sys', 'geometry_columns', 'geography_columns'):
+    if type_ == "table" and name in ("spatial_ref_sys", "geometry_columns", "geography_columns"):
         return False
     return True
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -57,7 +57,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         include_object=include_object,
-        compare_type=True
+        compare_type=True,
     )
 
     with context.begin_transaction():

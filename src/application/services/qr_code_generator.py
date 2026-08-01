@@ -1,8 +1,10 @@
 import os
-from fastapi import UploadFile, File, Form
-from PIL import Image
+
 import qrcode
-from config.settings import QR_FOLDER,OUTPUT_FOLDER
+from fastapi import File, Form, UploadFile
+from PIL import Image
+
+from config.settings import OUTPUT_FOLDER, QR_FOLDER
 
 
 def generate_qr_code(cpf: str, matricula: str) -> str:
@@ -18,7 +20,10 @@ def generate_qr_code(cpf: str, matricula: str) -> str:
 
     return file_path
 
-async def generate_folder_with_qr(cpf: str = Form(...), matricula: str = Form(...), folder_image: UploadFile = File(...)):
+
+async def generate_folder_with_qr(
+    cpf: str = Form(...), matricula: str = Form(...), folder_image: UploadFile = File(...)
+):
     qr_path = generate_qr_code(cpf, matricula)
 
     folder_path = os.path.join(OUTPUT_FOLDER, folder_image.filename)

@@ -15,4 +15,3 @@ class CreateCampanhaUseCase:
             raise ValueError("Usuário com CPF informado não encontrado.")
 
         return self._campanha_repo.create(dto, usuario.id)
-

@@ -1,5 +1,5 @@
 def validar_cpf(cpf: str) -> bool:
-    cpf = ''.join(filter(str.isdigit, cpf))
+    cpf = "".join(filter(str.isdigit, cpf))
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
 
