@@ -17,7 +17,7 @@ class UserUseCase:
         self.time_repo = time_repo
 
     def create_user(self, user: UserCreateDTO) -> UserModel:
-        # print("📥 Dados recebidos:", user.model_dump())
+        # print("Dados recebidos:", user.model_dump())
         try:
             if self.user_repo.get_by_cpf(user.cpf):
                 raise HTTPException(status_code=400, detail="CPF já está cadastrado.")
@@ -49,7 +49,7 @@ class UserUseCase:
                     raise HTTPException(status_code=400, detail="Time obrigatório para gerente.")
 
             elif user.role == "colaborador":
-                print("📦 Recebido time_id para colaborador:", user.time_id)
+                print("Recebido time_id para colaborador:", user.time_id)
                 if user.time_id:
                     new_user.time_id = user.time_id
                     self.user_repo.update(new_user)

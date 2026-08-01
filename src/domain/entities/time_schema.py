@@ -12,7 +12,7 @@ class UserMinimal(BaseModel):
 
 class TimeBase(BaseModel):
     name: str
-    local: LocalResumoSchema | None = None
+    local_id: int | None = None
     gerente_id: int
     coo_id: int
 

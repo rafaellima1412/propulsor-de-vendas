@@ -112,10 +112,9 @@ async def create_campaign(
     if not validar_cpf(cpf):
         raise HTTPException(status_code=400, detail="CPF inválido!")
 
-    output_filename = await generate_folder_with_qr(cpf, matricula, folder_image)
-    output_url = f"/media/outputs/{output_filename}"
-
     try:
+        output_filename = await generate_folder_with_qr(cpf, matricula, folder_image)
+        output_url = f"/media/outputs/{output_filename}"
         data = CampanhaCreateDTO(
             title=title,
             paragraph=paragraph,
