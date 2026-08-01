@@ -125,4 +125,4 @@ class UserRepository(IUserRepository):
             self.db.close() 
         
     def close(self):
-    self.db.close()
+        self.db.close()
