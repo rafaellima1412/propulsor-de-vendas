@@ -19,7 +19,6 @@ class TimeRepository(ITimeRepository):
         self.db.add(new_time)
         self.db.commit()
         self.db.refresh(new_time)
-        self.db.close()
         return new_time
 
     def update(self, time_id: int, data: TimeUpdate):

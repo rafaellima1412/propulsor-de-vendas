@@ -36,7 +36,7 @@ async def create_time(
     data: TimeCreate,
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
-    return await time_usecase.create_time(data)
+    return  time_usecase.create_time(data)
 
 
 @router.put("/{time_id}", response_model=TimeOut)
@@ -65,7 +65,7 @@ async def get_times_by_coo(
     coo_id: int,
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
-    return await time_usecase.get_times_by_coo(coo_id)
+    return  time_usecase.get_times_by_coo(coo_id)
 
 
 @router.get("/by-gerente/{gerente_id}", response_model=list[TimeOut])
@@ -74,4 +74,4 @@ async def get_times_by_gerente(
     gerente_id: int,
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
-    return await time_usecase.get_times_by_gerente(gerente_id)
+    return  time_usecase.get_times_by_gerente(gerente_id)
