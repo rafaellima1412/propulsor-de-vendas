@@ -1,12 +1,11 @@
-from typing import List, Optional
 from fastapi import HTTPException
+
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.application.repositories.iuser_repository import IUserRepository
 from src.domain.entities.time_schema import TimeCreate, TimeUpdate
-from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.user_model import UserModel
-from sqlalchemy.orm import Session
+
 
 class UserUseCase:
     def __init__(
@@ -39,11 +38,7 @@ class UserUseCase:
                 if user.novo_time and user.novo_time.strip():
                     time = self.time_repo.get_by_name(user.novo_time)
                     if not time:
-                        time_data = TimeCreate(
-                            name=user.novo_time,
-                            gerente_id=new_user.id,
-                            coo_id=new_user.id
-                        )
+                        time_data = TimeCreate(name=user.novo_time, gerente_id=new_user.id, coo_id=new_user.id)
                         time = self.time_repo.create(time_data)
                     new_user.time_id = time.id
                     self.user_repo.update(new_user)
@@ -77,20 +72,19 @@ class UserUseCase:
 
             return new_user
         finally:
-
             self.user_repo.db.close()
             self.time_repo.db.close()
 
-    def list_users(self) -> List[UserModel]:
+    def list_users(self) -> list[UserModel]:
         return self.user_repo.get_all()
 
-    def get_user(self, user_id: int) -> Optional[UserModel]:
+    def get_user(self, user_id: int) -> UserModel | None:
         return self.user_repo.get_by_id(user_id)
 
-    def list_by_role(self, role: str) -> List[UserModel]:
+    def list_by_role(self, role: str) -> list[UserModel]:
         return self.user_repo.get_by_role(role)
 
-    def list_gerentes_by_coo(self, coo_id: int) -> List[UserModel]:
+    def list_gerentes_by_coo(self, coo_id: int) -> list[UserModel]:
         return self.user_repo.get_gerentes_by_coo(coo_id)
         return self.user_repo.get_colaboradores_by_time(time_id)
 

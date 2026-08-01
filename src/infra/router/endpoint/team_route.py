@@ -1,14 +1,16 @@
 # src/infra/router/endpoint/time_router.py
+
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
-from src.infra.dy.container import Container
+
 from src.application.use_cases.team_usecase import TimeUseCase
-from src.domain.entities.time_schema import TimeOut, TimeCreate
+from src.domain.entities.time_schema import TimeCreate, TimeOut
+from src.infra.dy.container import Container
 
 router = APIRouter(prefix="/times", tags=["Times"])
 
-@router.get("/list", response_model=List[TimeOut])
+
+@router.get("/list", response_model=list[TimeOut])
 @inject
 async def list_times(
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
@@ -57,7 +59,7 @@ async def delete_time(
     return {"message": "Time deletado com sucesso"}
 
 
-@router.get("/by-coo/{coo_id}", response_model=List[TimeOut])
+@router.get("/by-coo/{coo_id}", response_model=list[TimeOut])
 @inject
 async def get_times_by_coo(
     coo_id: int,
@@ -66,7 +68,7 @@ async def get_times_by_coo(
     return await time_usecase.get_times_by_coo(coo_id)
 
 
-@router.get("/by-gerente/{gerente_id}", response_model=List[TimeOut])
+@router.get("/by-gerente/{gerente_id}", response_model=list[TimeOut])
 @inject
 async def get_times_by_gerente(
     gerente_id: int,

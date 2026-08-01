@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class CarteiraFinanceiraDTO(BaseModel):
     usuario_id: int
     saldo_atual: float

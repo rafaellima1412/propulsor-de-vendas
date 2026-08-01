@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,7 +10,6 @@ from config.settings import BASE_DIR
 from src.infra.database.init_db import init_db
 from src.infra.dy.container import Container
 from src.infra.router.routers import routers as v1_routers
-
 
 container = Container()
 
@@ -46,9 +45,7 @@ app = FastAPI(
 app.include_router(v1_routers)
 
 
-templates = Jinja2Templates(
-    directory=os.path.join(BASE_DIR, "templates")
-)
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 app.mount(
     "/static",

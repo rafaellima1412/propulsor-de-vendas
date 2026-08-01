@@ -2,11 +2,12 @@ import os
 
 os.environ["POSTGRES_DB"] = os.environ.get("TEST_POSTGRES_DB", "propulsor_vendas_test")
 
+import sys
+from pathlib import Path
+
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
-import sys
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -33,11 +34,7 @@ def _clean_tables():
         table_names = [t.name for t in Base.metadata.tables.values()]
         if table_names:
             quoted = ", ".join(f'"{name}"' for name in table_names)
-            conn.execute(
-                text(
-                    f"TRUNCATE {quoted} RESTART IDENTITY CASCADE;"
-                )
-            )
+            conn.execute(text(f"TRUNCATE {quoted} RESTART IDENTITY CASCADE;"))
 
     print(">>> banco limpo")
 

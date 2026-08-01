@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -16,51 +16,51 @@ class CampanhaRepository(ICampanhaRepository):
         self.db = db
 
     def create(self, campanha: CampanhaCreateDTO, usuario_id: int) -> Campaign:
-            db_campanha = CampanhaModel(
-                title=campanha.title,
-                paragraph=campanha.paragraph,
-                post_type=campanha.post_type,
-                url=campanha.url,
-                image=campanha.image,
-                folder_url=campanha.folder_url,
-                qrcode_url=campanha.qrcode_url,
-            )
-            usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
-            if not usuario:
-                raise ValueError("Usuário não encontrado")
+        db_campanha = CampanhaModel(
+            title=campanha.title,
+            paragraph=campanha.paragraph,
+            post_type=campanha.post_type,
+            url=campanha.url,
+            image=campanha.image,
+            folder_url=campanha.folder_url,
+            qrcode_url=campanha.qrcode_url,
+        )
+        usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
+        if not usuario:
+            raise ValueError("Usuário não encontrado")
 
-            db_campanha.usuarios.append(usuario)
+        db_campanha.usuarios.append(usuario)
 
-            if usuario.time_id:
-                time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
-                if time:
-                    db_campanha.times.append(time)
-                else:
-                    raise ValueError("Time não encontrado")
+        if usuario.time_id:
+            time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
+            if time:
+                db_campanha.times.append(time)
             else:
-                raise ValueError("Usuário não está associado a nenhum time")
+                raise ValueError("Time não encontrado")
+        else:
+            raise ValueError("Usuário não está associado a nenhum time")
 
-            self.db.add(db_campanha)
-            self.db.commit()
-            self.db.refresh(db_campanha)
+        self.db.add(db_campanha)
+        self.db.commit()
+        self.db.refresh(db_campanha)
 
-            campaign = Campaign.from_orm(db_campanha)
-            self.db.close()
-            return campaign
+        campaign = Campaign.from_orm(db_campanha)
+        self.db.close()
+        return campaign
 
-            # return Campaign(
-            #     id=db_campanha.id,
-            #     title=db_campanha.title,
-            #     paragraph=db_campanha.paragraph,
-            #     post_type=db_campanha.post_type,
-            #     url=db_campanha.url,
-            #     image=db_campanha.image,
-            #     folder_url=db_campanha.folder_url,
-            #     qrcode_url=db_campanha.qrcode_url,
-            #     data_criacao=db_campanha.data_criacao
-            # )
+        # return Campaign(
+        #     id=db_campanha.id,
+        #     title=db_campanha.title,
+        #     paragraph=db_campanha.paragraph,
+        #     post_type=db_campanha.post_type,
+        #     url=db_campanha.url,
+        #     image=db_campanha.image,
+        #     folder_url=db_campanha.folder_url,
+        #     qrcode_url=db_campanha.qrcode_url,
+        #     data_criacao=db_campanha.data_criacao
+        # )
 
-    def list_by_usuario_id(self, usuario_id: int) -> List[Campaign]:
+    def list_by_usuario_id(self, usuario_id: int) -> list[Campaign]:
         campanhas_db = (
             self.db.query(CampanhaModel)
             .join(CampanhaModel.usuarios)
@@ -78,17 +78,13 @@ class CampanhaRepository(ICampanhaRepository):
                 image=c.image,
                 folder_url=c.folder_url,
                 qrcode_url=c.qrcode_url,
-                data_criacao=c.data_criacao
+                data_criacao=c.data_criacao,
             )
             for c in campanhas_db
         ]
 
     def get_by_id(self, campanha_id: int) -> Campaign | None:
-        db_campanha = (
-            self.db.query(CampanhaModel)
-            .filter(CampanhaModel.id == campanha_id)
-            .first()
-        )
+        db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
             return None
 
@@ -104,18 +100,14 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao,
             times=[time.id for time in db_campanha.times],
         )
+
     def list_by_time_id(self, time_id: int) -> list[Any] | list[type[CampanhaModel]]:
         if not time_id:
             return []
 
-        return (
-            self.db.query(CampanhaModel)
-            .join(CampanhaModel.times)
-            .filter(TimeModel.id == time_id)
-            .all()
-        )
+        return self.db.query(CampanhaModel).join(CampanhaModel.times).filter(TimeModel.id == time_id).all()
 
-    def get_time_by_id(self, time_id: int) -> Optional[TimeModel]:
+    def get_time_by_id(self, time_id: int) -> TimeModel | None:
         return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
 
     def update(self, campaign: UpdateCampaignDTO, usuario_id: int) -> Campaign:

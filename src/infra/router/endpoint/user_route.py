@@ -1,20 +1,17 @@
 import secrets
-from typing import Optional, List
 
-from dependency_injector.wiring import inject, Provide
-from fastapi import Request, Form, Depends, APIRouter, HTTPException
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from passlib.context import CryptContext
 from starlette import status
-from starlette.responses import RedirectResponse, HTMLResponse, JSONResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 
 from src.application.auth.auth import authenticate_user, create_access_token, get_current_user
 from src.application.dtos.user_create_dto import UserCreateDTO
-from src.application.use_cases.gerente_usecase import GerenteUseCases
 from src.application.use_cases.user_usecase import UserUseCase
 from src.domain.entities.user_schema import UserOut
 from src.infra.database.models.user_model import UserModel
-
 from src.infra.database.session import SessionLocal
 from src.infra.dy.container import Container
 
@@ -23,13 +20,16 @@ router = APIRouter(prefix="/user")
 templates = Jinja2Templates(directory="templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def parse_optional_int(value: Optional[str]) -> Optional[int]:
+
+def parse_optional_int(value: str | None) -> int | None:
     if value in (None, "", "null"):
         return None
     try:
         return int(value)
     except ValueError:
         return None
+
+
 @router.post("/")
 @inject
 def create_user(
@@ -38,12 +38,11 @@ def create_user(
 ):
     return usecase.create_user(user)
 
+
 @router.get("/")
 @inject
 def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
     return usecase.list_users()
-
-
 
 
 @router.post("/register")
@@ -55,13 +54,11 @@ def register_user(
     cpf: str = Form(...),
     password: str = Form(...),
     role: str = Form(...),
-    subordinado_id: Optional[int] = Form(None),
-    novo_time: Optional[str] = Form(None),
-    time_existente_id: Optional[str] = Form(None),
-    time_id: Optional[int] = Form(None),
-
-
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
+    subordinado_id: int | None = Form(None),
+    novo_time: str | None = Form(None),
+    time_existente_id: str | None = Form(None),
+    time_id: int | None = Form(None),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     try:
         hashed_password = pwd_context.hash(password)
@@ -81,7 +78,7 @@ def register_user(
         return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
 
     except HTTPException as e:
-        print("Erro:", getattr(e, 'detail', str(e)))
+        print("Erro:", getattr(e, "detail", str(e)))
         response = templates.TemplateResponse(
             request,
             "register.html",
@@ -95,12 +92,11 @@ def register_user(
         user_usecase.close()
         return response
 
+
 @router.get("/forgot-password")
 def show_forgot_password(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "forgot_password.html", 
-        {"user": None})
+    return templates.TemplateResponse(request, "forgot_password.html", {"user": None})
+
 
 @router.post("/forgot-password")
 def reset_password(request: Request, cpf: str = Form(...)):
@@ -109,9 +105,8 @@ def reset_password(request: Request, cpf: str = Form(...)):
 
     if not usuario:
         return templates.TemplateResponse(
-            request, 
-            "forgot_password.html", 
-            {"error": "CPF não encontrado.", "user": None})
+            request, "forgot_password.html", {"error": "CPF não encontrado.", "user": None}
+        )
 
     nova_senha = secrets.token_hex(4)
     print(nova_senha)
@@ -119,35 +114,25 @@ def reset_password(request: Request, cpf: str = Form(...)):
     db.commit()
     db.close()
 
-    return templates.TemplateResponse(
-        request,
-        "forgot_password.html", {
-        "message": f"Sua nova senha é: {nova_senha}"
-    })
+    return templates.TemplateResponse(request, "forgot_password.html", {"message": f"Sua nova senha é: {nova_senha}"})
 
 
 @router.post("/cadastro", response_class=HTMLResponse)
-def login_web(
-        request: Request,
-        username: str = Form(...),
-        password: str = Form(...)):
+def login_web(request: Request, username: str = Form(...), password: str = Form(...)):
     user = authenticate_user(username, password)
     if user:
-        access_token = create_access_token(data={
-            "sub": user["username"],
-            "role": user["role"]
-        })
+        access_token = create_access_token(data={"sub": user["username"], "role": user["role"]})
         response = RedirectResponse(url="/pagina/inicial", status_code=status.HTTP_302_FOUND)
-        response.set_cookie("access_token", f"Bearer {access_token}", httponly=True,secure=True, samesite="Lax")
+        response.set_cookie("access_token", f"Bearer {access_token}", httponly=True, secure=True, samesite="Lax")
         return response
     return templates.TemplateResponse(
-    request,
-    "login.html",
-    {
-        "error": "Credenciais inválidas",
-        "user": None,
-    },
-)
+        request,
+        "login.html",
+        {
+            "error": "Credenciais inválidas",
+            "user": None,
+        },
+    )
 
 
 @router.get("/register")
@@ -159,19 +144,20 @@ def show_register_form(
 ):
     response = templates.TemplateResponse(
         request,
-        "register.html", {
-        "user": user,
-        "gerentes": user_usecase.list_by_role("gerente"),
-        "time": user_usecase.list_all_times(),
-    })
+        "register.html",
+        {
+            "user": user,
+            "gerentes": user_usecase.list_by_role("gerente"),
+            "time": user_usecase.list_all_times(),
+        },
+    )
     user_usecase.close()
     return response
 
-@router.get("/gerentes", response_model=List[UserOut])
+
+@router.get("/gerentes", response_model=list[UserOut])
 @inject
-async def api_gerentes(
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
-):
+async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
     gerentes = user_usecase.list_by_role("gerente")
     result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
     user_usecase.close()

@@ -23,10 +23,7 @@ class Settings(BaseSettings):
         user = quote_plus(self.POSTGRES_USER)
         password = quote_plus(self.POSTGRES_PASSWORD)
 
-        return (
-            f"postgresql://{user}:{password}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.POSTGRES_DB}"
-        )
+        return f"postgresql://{user}:{password}" f"@{self.DB_HOST}:{self.DB_PORT}/{self.POSTGRES_DB}"
 
 
 settings = Settings()

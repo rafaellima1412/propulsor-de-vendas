@@ -17,34 +17,16 @@ class TimeModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
 
-    local_id: Mapped[int] = mapped_column(ForeignKey('locais.id'), nullable=True)
+    local_id: Mapped[int] = mapped_column(ForeignKey("locais.id"), nullable=True)
 
     local: Mapped["Local"] = relationship("Local", back_populates="times")
-    
+
     gerente_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    gerente = relationship(
-        "UserModel",
-        foreign_keys=[gerente_id],
-        back_populates="times_gerenciados",
-        lazy="joined"
-    )
+    gerente = relationship("UserModel", foreign_keys=[gerente_id], back_populates="times_gerenciados", lazy="joined")
 
     coo_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    coo = relationship(
-        "UserModel",
-        foreign_keys=[coo_id],
-        back_populates="times_coordenados",
-        lazy="joined"
-    )
+    coo = relationship("UserModel", foreign_keys=[coo_id], back_populates="times_coordenados", lazy="joined")
 
     # Esse relacionamento deve apontar explicitamente a FK usada: UserModel.time_id
-    colaboradores = relationship(
-        "UserModel",
-        back_populates="time",
-        foreign_keys=[UserModel.time_id]
-    )
-    campanhas = relationship(
-        "CampanhaModel",
-        secondary=campanha_time,
-        back_populates="times"
-    )
+    colaboradores = relationship("UserModel", back_populates="time", foreign_keys=[UserModel.time_id])
+    campanhas = relationship("CampanhaModel", secondary=campanha_time, back_populates="times")

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.domain.entities.campaign import Campaign
@@ -10,8 +10,9 @@ class ICampanhaRepository(ABC):
     @abstractmethod
     def create(self, campanha: CampanhaCreateDTO, usuario_id: int) -> Campaign:
         pass
+
     @abstractmethod
-    def list_by_usuario_id(self, usuario_id: int) -> List[Campaign]:
+    def list_by_usuario_id(self, usuario_id: int) -> list[Campaign]:
         pass
 
     @abstractmethod
@@ -23,5 +24,5 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, campanha_id: int) -> Optional[CampanhaModel]:
+    def get_by_id(self, campanha_id: int) -> CampanhaModel | None:
         pass

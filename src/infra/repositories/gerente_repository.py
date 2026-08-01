@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from sqlalchemy.orm import Session
 
 from src.application.repositories.igerente_repository import IGerenteRepository
@@ -11,10 +9,10 @@ class GerenteRepository(IGerenteRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def list_all(self) -> List[UserModel]:
+    def list_all(self) -> list[UserModel]:
         return self.db.query(UserModel).all()
 
-    def get_by_id(self, id: int) -> Optional[UserModel]:
+    def get_by_id(self, id: int) -> UserModel | None:
         return self.db.query(UserBase).filter(UserBase.id == id).first()
 
     def create(self, gerente: UserModel) -> UserModel:

@@ -1,8 +1,4 @@
-
-from typing import Optional
-from pydantic import Field
-
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Coordenadas(BaseModel):
@@ -11,14 +7,16 @@ class Coordenadas(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class LocalResumoSchema(BaseModel):
-    id: Optional[int]
+    id: int | None
     nome: str
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class LocalSchema(BaseModel):
-    id: Optional[int] = Field(None, description="ID do local")
+    id: int | None = Field(None, description="ID do local")
     nome: str = Field(..., description="Nome do local")
     coordenadas: Coordenadas
 

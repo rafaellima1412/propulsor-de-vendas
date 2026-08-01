@@ -8,15 +8,14 @@ from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseC
 from src.application.use_cases.user_usecase import UserUseCase
 from src.application.use_cases.venda_usecase import VendaUseCase
 from src.infra.database.session import SessionLocal
-from src.infra.repositories.TimeRepository import TimeRepository
 from src.infra.repositories.campaign_repository import CampanhaRepository
 from src.infra.repositories.gerente_repository import GerenteRepository
+from src.infra.repositories.TimeRepository import TimeRepository
 from src.infra.repositories.user_repository import UserRepository
 from src.infra.repositories.venda_repository import VendaRepository
 
 
 class Container(containers.DeclarativeContainer):
-
     wiring_config = containers.WiringConfiguration(
         modules=[
             "src.infra.router.endpoint.user_route",
@@ -42,23 +41,11 @@ class Container(containers.DeclarativeContainer):
         db=db_session,
     )
 
-    campanha_repository = providers.Factory(
-        CampanhaRepository,
-        db=db_session
-    )
-    gerente_repository = providers.Factory(
-        GerenteRepository,
-        db=db_session
-    )
+    campanha_repository = providers.Factory(CampanhaRepository, db=db_session)
+    gerente_repository = providers.Factory(GerenteRepository, db=db_session)
 
-    time_repository = providers.Factory(
-        TimeRepository,
-        db_session=db_session
-    )
-    carteira_repository = providers.Factory(
-        TimeRepository,
-        db_session=db_session
-    )
+    time_repository = providers.Factory(TimeRepository, db_session=db_session)
+    carteira_repository = providers.Factory(TimeRepository, db_session=db_session)
 
     user_usecase = providers.Factory(
         UserUseCase,
@@ -72,9 +59,7 @@ class Container(containers.DeclarativeContainer):
     )
 
     create_campaign_use_case = providers.Factory(
-        CreateCampanhaUseCase,
-        campanha_repo=campanha_repository,
-        user_repo=user_repository
+        CreateCampanhaUseCase, campanha_repo=campanha_repository, user_repo=user_repository
     )
 
     update_campaign_use_case = providers.Factory(
@@ -82,10 +67,7 @@ class Container(containers.DeclarativeContainer):
         campanha_repo=campanha_repository,
     )
 
-    gerente_use_case = providers.Factory(
-        GerenteUseCases,
-        repo=gerente_repository
-    )
+    gerente_use_case = providers.Factory(GerenteUseCases, repo=gerente_repository)
     time_usecase = providers.Factory(
         TimeUseCase,
         time_repository=time_repository,
@@ -94,5 +76,5 @@ class Container(containers.DeclarativeContainer):
         DashboardUseCase,
         campanha_repo=campanha_repository,
         venda_repo=venda_repository,
-        carteira_repo=carteira_repository
+        carteira_repo=carteira_repository,
     )

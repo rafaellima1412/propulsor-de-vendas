@@ -1,17 +1,14 @@
 # application/usecases/dashboard_usecase.py
 import calendar
 
-from src.application.repositories.ICarteiraRepository import ICarteiraRepository
 from src.application.repositories.icampaign_repository import ICampanhaRepository
+from src.application.repositories.ICarteiraRepository import ICarteiraRepository
 from src.application.repositories.ivenda_repository import IVendaRepository
 
 
 class DashboardUseCase:
     def __init__(
-        self,
-        campanha_repo: ICampanhaRepository,
-        venda_repo: IVendaRepository,
-        carteira_repo: ICarteiraRepository
+        self, campanha_repo: ICampanhaRepository, venda_repo: IVendaRepository, carteira_repo: ICarteiraRepository
     ):
         self.campanha_repo = campanha_repo
         self.venda_repo = venda_repo
@@ -27,7 +24,7 @@ class DashboardUseCase:
 
         planos_labels = list(vendas_por_plano.keys())
         planos_data = list(vendas_por_plano.values())
-        planos_cores = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6'][:len(planos_labels)]
+        planos_cores = ["#3498db", "#2ecc71", "#f1c40f", "#e74c3c", "#9b59b6"][: len(planos_labels)]
 
         mes_labels = [f"{calendar.month_abbr[int(mes)].capitalize()}/{int(ano)}" for ano, mes in vendas_por_mes.keys()]
         mes_data = list(vendas_por_mes.values())
@@ -44,7 +41,7 @@ class DashboardUseCase:
                 "finance": {
                     "labels": mes_labels,
                     "data": mes_data,
-                }
+                },
             },
-            "planos_cores": planos_cores
+            "planos_cores": planos_cores,
         }
