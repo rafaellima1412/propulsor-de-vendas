@@ -77,44 +77,26 @@ class UserUseCase:
 
             return new_user
         finally:
-            # Repositories only close their session after a commit (create/
-            # update). Reads (get_by_cpf, get_by_username, get_by_id...) and
-            # early-return validation errors leave a transaction open
-            # otherwise, which can block later requests waiting on the same
-            # rows/tables. Closing here covers every exit path.
+
             self.user_repo.db.close()
             self.time_repo.db.close()
 
     def list_users(self) -> List[UserModel]:
-        result = self.user_repo.get_all()
-        self.user_repo.db.close()
-        return result
+        return self.user_repo.get_all()
 
     def get_user(self, user_id: int) -> Optional[UserModel]:
-        result = self.user_repo.get_by_id(user_id)
-        self.user_repo.db.close()
-        return result
+        return self.user_repo.get_by_id(user_id)
 
     def list_by_role(self, role: str) -> List[UserModel]:
-        result = self.user_repo.get_by_role(role)
-        self.user_repo.db.close()
-        return result
+        return self.user_repo.get_by_role(role)
 
     def list_gerentes_by_coo(self, coo_id: int) -> List[UserModel]:
-        result = self.user_repo.get_gerentes_by_coo(coo_id)
-        self.user_repo.db.close()
-        return result
-    #
-    # def list_times_ids_by_gerente(self, gerente_id: int) -> List[int]:
-    #     return self.user_repo.get_times_ids_by_gerente(gerente_id)
-    #
-    # def list_colaboradores_by_gerente(self, gerente_id: int) -> List[UserModel]:
-    #     return self.user_repo.get_colaboradores_by_gerente(gerente_id)
-    #
-    # def list_colaboradores_by_time(self, time_id: int) -> List[UserModel]:
-    #     return self.user_repo.get_colaboradores_by_time(time_id)
+        return self.user_repo.get_gerentes_by_coo(coo_id)
+  return self.user_repo.get_colaboradores_by_time(time_id)
 
     def list_all_times(self):
-        result = self.time_repo.list_all()
+        return self.time_repo.list_all()
+
+    def close(self):
+        self.user_repo.db.close()
         self.time_repo.db.close()
-        return result
