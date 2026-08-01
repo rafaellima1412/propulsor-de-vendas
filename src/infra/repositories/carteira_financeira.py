@@ -2,7 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.application.dtos.carteira_financeira_dto import CarteiraFinanceiraDTO
-from src.infra.database.models import VendaModel
+from src.infra.database.models.venda_model import VendaModel
 
 
 class CarteiraFinanceiraRepository:

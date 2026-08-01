@@ -6,7 +6,7 @@ from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.domain.entities.campaign import Campaign
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.campaign_model import CampanhaModel
 from src.infra.database.models.time_model import TimeModel
 

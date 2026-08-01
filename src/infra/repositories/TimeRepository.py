@@ -1,6 +1,6 @@
 from src.application.repositories.ITimeRepository import ITimeRepository
 from src.domain.entities.time_schema import TimeCreate, TimeUpdate
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.time_model import TimeModel
 
 

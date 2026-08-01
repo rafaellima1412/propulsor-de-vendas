@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infra.database.base import Base
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.campanha_time import campanha_time
 
 if TYPE_CHECKING:

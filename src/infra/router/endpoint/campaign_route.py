@@ -18,7 +18,7 @@ from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
 from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.database.db import get_db
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
 

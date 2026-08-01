@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from src.application.repositories.igerente_repository import IGerenteRepository
 from src.domain.entities.user_schema import UserBase
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 
 
 class GerenteRepository(IGerenteRepository):

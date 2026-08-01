@@ -3,7 +3,7 @@ from typing import Optional
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.domain.entities.campaign import Campaign
-from src.infra.database.models import CampanhaModel
+from src.infra.database.models.campaign_model  import CampanhaModel
 
 
 class ICampanhaRepository(ABC):

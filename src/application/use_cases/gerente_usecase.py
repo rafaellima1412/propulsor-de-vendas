@@ -1,6 +1,6 @@
 from src.application.repositories.igerente_repository import IGerenteRepository
 from src.domain.entities.user_schema import UserCreate, UserOut
-from src.infra.database.models import UserModel
+from src.infra.database.models.user_model import UserModel
 
 
 class GerenteUseCases:
