@@ -146,4 +146,6 @@ class CampanhaRepository(ICampanhaRepository):
         self.db.commit()
         self.db.refresh(db_campaign)
 
-        return Campaign.from_orm(db_campaign)
+        campaign = Campaign.from_orm(db_campaign)
+        self.db.close()
+        return campaign
