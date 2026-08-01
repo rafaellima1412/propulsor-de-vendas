@@ -82,7 +82,7 @@ def register_user(
 
     except HTTPException as e:
         print("Erro:", getattr(e, 'detail', str(e)))
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "register.html",
             {
                 "request": request,
@@ -92,6 +92,8 @@ def register_user(
                 "time": user_usecase.list_all_times(),
             },
         )
+        user_usecase.close()
+        return response
 
 @router.get("/forgot-password")
 def show_forgot_password(request: Request):
@@ -141,12 +143,14 @@ def show_register_form(
     user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    return templates.TemplateResponse("register.html", {
+    response = templates.TemplateResponse("register.html", {
         "request": request,
         "user": user,
         "gerentes": user_usecase.list_by_role("gerente"),
         "time": user_usecase.list_all_times(),
     })
+    user_usecase.close()
+    return response
 
 @router.get("/gerentes", response_model=List[UserOut])
 @inject
@@ -154,7 +158,9 @@ async def api_gerentes(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])
 ):
     gerentes = user_usecase.list_by_role("gerente")
-    return [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
+    result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
+    user_usecase.close()
+    return result
 
 
 @router.get("/logout")

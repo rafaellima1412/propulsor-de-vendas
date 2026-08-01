@@ -4,7 +4,7 @@ def validar_cpf(cpf: str) -> bool:
         return False
 
     def calc_digito(cpf_part, peso):
-        soma = sum(int(num) * fator for num, fator in zip(cpf_part, range(peso, 1, -1)))
+        soma = sum(int(num) * fator for num, fator in zip(cpf_part, range(peso, 1, -1), strict=True))
         resto = (soma * 10) % 11
         return resto if resto < 10 else 0
 
