@@ -40,8 +40,9 @@ def campaign_to_dict(campaign):
     }
 @router.get("/new", response_class=HTMLResponse)
 async def show_campaign_form(request: Request):
-    return templates.TemplateResponse("campaign_create.html", {
-        "request": request,
+    return templates.TemplateResponse(
+        request,
+        "campaign_create.html", {
         "title": "",
         "paragraph": "",
         "cpf": "",
@@ -61,8 +62,9 @@ async def form_page(
 
     resultado = dashboard_usecase.get_dashboard_data(user_id=user["id"], time_id=time_id)
 
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
+    return templates.TemplateResponse(
+        request,
+        "dashboard.html", {
         "user": user,
         "module": {
             "carousel_item": resultado["campanhas"]
@@ -87,20 +89,24 @@ async def campaign_detail(
 
     if user["role"] not in ["colaborador", "gerente", "coo"]:
         return templates.TemplateResponse(
+            request, 
             "error.html",
-            {"request": request, "message": "Acesso negado"},
+            {"message": "Acesso negado"},
             status_code=403,
         )
     template_name = "campaign_detail.html" if user["role"] == "colaborador" else "campaign_edit.html"
 
     user_times = time_usecase.get_times_by_user(user["id"])
     # print(f"ID: {user_times.id}, Nome: {user_times.name}")
-    return templates.TemplateResponse(template_name, {
-        "request": request,
-        "campaign": campaign,
-        "user": user,
-        "times": user_times,
-    })
+    return templates.TemplateResponse(
+        request,
+        template_name, 
+        {
+            "campaign": campaign,
+            "user": user,
+            "times": user_times,
+        }
+    )
 
 @router.post("/{campaign_id}/edit", response_class=HTMLResponse)
 @inject
@@ -184,8 +190,9 @@ async def generate(
         except ValueError as e:
             errors.append(str(e))
 
-    return templates.TemplateResponse("campaign_create.html", {
-        "request": request,
+    return templates.TemplateResponse(
+        request,
+        "campaign_create.html", {
         "title": title,
         "paragraph": paragraph,
         "cpf": cpf,

@@ -10,6 +10,7 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/inicial", response_class=HTMLResponse)
 def initial_page(request: Request, user: dict = Depends(get_current_user),):
     return templates.TemplateResponse(
+        request,
         "pagina_inicial.html",
-        {"request": request,"user": user}
+        {"user": user}
     )

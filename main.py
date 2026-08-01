@@ -64,9 +64,9 @@ async def custom_http_exception_handler(
 ):
     if exc.status_code == 403:
         return templates.TemplateResponse(
+            request,
             "error.html",
             {
-                "request": request,
                 "message": exc.detail,
             },
             status_code=403,
@@ -74,9 +74,9 @@ async def custom_http_exception_handler(
 
     if exc.status_code == 404:
         return templates.TemplateResponse(
+            request,
             "error.html",
             {
-                "request": request,
                 "message": "Página não encontrada",
             },
             status_code=404,

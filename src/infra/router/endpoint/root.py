@@ -7,4 +7,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/", response_class=HTMLResponse)
 def read_root(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request,"user": None})
+    return templates.TemplateResponse(
+        request,
+        "login.html", 
+        {"user": None})

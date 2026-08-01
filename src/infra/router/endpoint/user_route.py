@@ -83,9 +83,9 @@ def register_user(
     except HTTPException as e:
         print("Erro:", getattr(e, 'detail', str(e)))
         response = templates.TemplateResponse(
+            request,
             "register.html",
             {
-                "request": request,
                 "error": e.detail,
                 "user": None,
                 "gerentes": user_usecase.list_by_role("gerente"),
@@ -97,7 +97,10 @@ def register_user(
 
 @router.get("/forgot-password")
 def show_forgot_password(request: Request):
-    return templates.TemplateResponse("forgot_password.html", {"request": request,"user": None})
+    return templates.TemplateResponse(
+        request,
+        "forgot_password.html", 
+        {"user": None})
 
 @router.post("/forgot-password")
 def reset_password(request: Request, cpf: str = Form(...)):
@@ -105,7 +108,10 @@ def reset_password(request: Request, cpf: str = Form(...)):
     usuario = db.query(UserModel).filter_by(cpf=cpf).first()
 
     if not usuario:
-        return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "CPF não encontrado.", "user": None})
+        return templates.TemplateResponse(
+            request, 
+            "forgot_password.html", 
+            {"error": "CPF não encontrado.", "user": None})
 
     nova_senha = secrets.token_hex(4)
     print(nova_senha)
@@ -113,8 +119,9 @@ def reset_password(request: Request, cpf: str = Form(...)):
     db.commit()
     db.close()
 
-    return templates.TemplateResponse("forgot_password.html", {
-        "request": request,
+    return templates.TemplateResponse(
+        request,
+        "forgot_password.html", {
         "message": f"Sua nova senha é: {nova_senha}"
     })
 
@@ -133,7 +140,14 @@ def login_web(
         response = RedirectResponse(url="/pagina/inicial", status_code=status.HTTP_302_FOUND)
         response.set_cookie("access_token", f"Bearer {access_token}", httponly=True,secure=True, samesite="Lax")
         return response
-    return templates.TemplateResponse("login.html", {"request": request, "error": "Credenciais inválidas", "user": None})
+    return templates.TemplateResponse(
+    request,
+    "login.html",
+    {
+        "error": "Credenciais inválidas",
+        "user": None,
+    },
+)
 
 
 @router.get("/register")
@@ -143,8 +157,9 @@ def show_register_form(
     user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    response = templates.TemplateResponse("register.html", {
-        "request": request,
+    response = templates.TemplateResponse(
+        request,
+        "register.html", {
         "user": user,
         "gerentes": user_usecase.list_by_role("gerente"),
         "time": user_usecase.list_all_times(),
