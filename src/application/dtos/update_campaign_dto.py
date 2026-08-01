@@ -2,10 +2,10 @@ from pydantic import BaseModel
 
 
 class UpdateCampaignDTO(BaseModel):
-    title: str | None
-    paragraph: str | None
+    title: str | None = None
+    paragraph: str | None = None
     time_ids: list[int]
-    post_type: str | None
-    url: str | None
-    folder_url: str | None
-    qrcode_url: str | None
+    post_type: str | None = None
+    url: str | None = None
+    folder_url: str | None = None
+    qrcode_url: str | None = None

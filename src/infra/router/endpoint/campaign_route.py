@@ -83,34 +83,17 @@ async def campaign_detail(
         "editable": user["role"] != "colaborador",
     }
 
-
 @router.put("/{campaign_id}")
 @inject
 async def update_campaign(
     campaign_id: int,
-    title: str | None = Form(None),
-    paragraph: str | None = Form(None),
-    time_ids: list[int] = Form(...),
-    post_type: str | None = Form(None),
-    url: str | None = Form(None),
-    folder_url: str | None = Form(None),
-    qrcode_url: str | None = Form(None),
+    update_dto: UpdateCampaignDTO,
     user: dict = Depends(get_current_user),
     use_case: UpdateCampaignUseCase = Depends(Provide[Container.update_campaign_use_case]),
 ):
-    update_dto = UpdateCampaignDTO(
-        title=title,
-        paragraph=paragraph,
-        time_ids=time_ids,
-        post_type=post_type,
-        url=url,
-        folder_url=folder_url,
-        qrcode_url=qrcode_url,
-    )
     campaign = use_case.execute(user=user, campaign_id=campaign_id, update_dto=update_dto)
 
     return {"message": "Campanha atualizada com sucesso!", "campaign": campaign_to_dict(campaign)}
-
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @inject
