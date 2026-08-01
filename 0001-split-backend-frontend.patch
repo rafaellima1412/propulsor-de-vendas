@@ -1,0 +1,896 @@
+From 1f784bbece065e9ca90e60f8dcb999d4715b5f0b Mon Sep 17 00:00:00 2001
+From: Claude <assistant@example.com>
+Date: Sat, 1 Aug 2026 18:19:04 +0000
+Subject: [PATCH] refactor(backend): separa API do frontend Jinja2
+
+- Remove Jinja2Templates/StaticFiles de views do main.py e das rotas
+  (root, pagina_inicial, campanhas, user); exception handler agora
+  sempre responde JSON.
+- Rotas que so existiam pra renderizar formulario (GET /campanhas/new,
+  GET /user/register, GET /user/forgot-password, GET /pagina/inicial)
+  foram removidas: isso passa a ser responsabilidade do frontend.
+- Rotas de acao convertidas para JSON:
+    POST /user/cadastro       -> POST /user/login (retorna JSON + cookie)
+    GET  /user/logout         -> POST /user/logout
+    POST /campanhas/create    -> POST /campanhas/
+    POST /campanhas/{id}/edit -> PUT  /campanhas/{id}
+    GET  /campanhas/{id}/view -> GET  /campanhas/{id}
+  Erros de validacao agora levantam HTTPException (400/401/403/404)
+  em vez de re-renderizar HTML.
+- Novo endpoint GET /user/me para o frontend checar sessao ativa.
+- CORS habilitado via CORSMiddleware, origem configuravel por
+  CORS_ORIGINS_RAW no .env.
+- static/{css,icons,folders} e templates/ movidos para
+  frontend-reference/ (mantidos como referencia visual, nao sao mais
+  servidos pelo backend).
+- static/{uploads,outputs,qrcodes} renomeado para media/{...}: e
+  conteudo gerado pela API (crachas/QR codes), nao frontend, e
+  continua sendo servido pelo backend em /media.
+- tests/test_user_flow.py atualizado para os endpoints JSON novos.
+---
+ .env.example                                  |   4 +-
+ .gitignore                                    |   5 +-
+ config/settings.py                            |  10 +-
+ frontend-reference/README.md                  |  21 +++
+ .../static-assets}/css/base.css               |   0
+ .../static-assets}/css/campanha.css           |   0
+ .../folder_final_540.618.010-07_0001.pdf      | Bin
+ .../static-assets}/icons/add.png              | Bin
+ .../static-assets}/icons/link.png             | Bin
+ .../static-assets}/icons/presente.png         | Bin
+ .../static-assets}/icons/seguidores.png       | Bin
+ .../templates}/base.html                      |   0
+ .../templates}/campaign_create.html           |   0
+ .../templates}/campaign_detail.html           |   0
+ .../templates}/campaign_edit.html             |   0
+ .../templates}/campanha.html                  |   0
+ .../templates}/dashboard.html                 |   0
+ .../templates}/error.html                     |   0
+ .../templates}/forgot_password.html           |   0
+ .../templates}/login.html                     |   0
+ .../templates}/pagina_inicial.html            |   0
+ .../templates}/qrcode.html                    |   0
+ .../templates}/register.html                  |   0
+ main.py                                       |  52 +++---
+ src/infra/router/endpoint/campaign_route.py   | 149 ++++++------------
+ .../router/endpoint/pagina_inicial_router.py  |  16 --
+ src/infra/router/endpoint/root.py             |  12 +-
+ src/infra/router/endpoint/user_route.py       | 122 ++++++--------
+ src/infra/router/routers.py                   |   2 -
+ src/infra/settings/settings.py                |   8 +
+ tests/test_user_flow.py                       |  43 +++--
+ 31 files changed, 182 insertions(+), 262 deletions(-)
+ create mode 100644 frontend-reference/README.md
+ rename {static => frontend-reference/static-assets}/css/base.css (100%)
+ rename {static => frontend-reference/static-assets}/css/campanha.css (100%)
+ rename {static => frontend-reference/static-assets}/folders/folder_final_540.618.010-07_0001.pdf (100%)
+ rename {static => frontend-reference/static-assets}/icons/add.png (100%)
+ rename {static => frontend-reference/static-assets}/icons/link.png (100%)
+ rename {static => frontend-reference/static-assets}/icons/presente.png (100%)
+ rename {static => frontend-reference/static-assets}/icons/seguidores.png (100%)
+ rename {templates => frontend-reference/templates}/base.html (100%)
+ rename {templates => frontend-reference/templates}/campaign_create.html (100%)
+ rename {templates => frontend-reference/templates}/campaign_detail.html (100%)
+ rename {templates => frontend-reference/templates}/campaign_edit.html (100%)
+ rename {templates => frontend-reference/templates}/campanha.html (100%)
+ rename {templates => frontend-reference/templates}/dashboard.html (100%)
+ rename {templates => frontend-reference/templates}/error.html (100%)
+ rename {templates => frontend-reference/templates}/forgot_password.html (100%)
+ rename {templates => frontend-reference/templates}/login.html (100%)
+ rename {templates => frontend-reference/templates}/pagina_inicial.html (100%)
+ rename {templates => frontend-reference/templates}/qrcode.html (100%)
+ rename {templates => frontend-reference/templates}/register.html (100%)
+ delete mode 100644 src/infra/router/endpoint/pagina_inicial_router.py
+
+diff --git a/.env.example b/.env.example
+index d408f03..988a0a2 100644
+--- a/.env.example
++++ b/.env.example
+@@ -5,4 +5,6 @@ DB_HOST=
+ DB_PORT=
+ SECRET_KEY=
+ ALGORITHM=
+-ACCESS_TOKEN_EXPIRE_MINUTES=
+\ No newline at end of file
++ACCESS_TOKEN_EXPIRE_MINUTES=
++# URL(s) do frontend, separadas por vírgula (sem barra no final)
++CORS_ORIGINS_RAW=http://localhost:5173
+\ No newline at end of file
+diff --git a/.gitignore b/.gitignore
+index 0484cd2..a971628 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -174,5 +174,6 @@ poetry.toml
+ pyrightconfig.json
+ 
+ # End of https://www.toptal.com/developers/gitignore/api/python
+-static/outputs/
+-static/qrcodes/
++media/uploads/
++media/outputs/
++media/qrcodes/
+diff --git a/config/settings.py b/config/settings.py
+index c151e4d..551385d 100644
+--- a/config/settings.py
++++ b/config/settings.py
+@@ -1,12 +1,14 @@
+ import os
+ 
+-UPLOAD_FOLDER = "static/uploads"
+-OUTPUT_FOLDER = "static/outputs"
+-QR_FOLDER = "static/qrcodes"
++# Pasta de conteúdo gerado/enviado em runtime pela API (crachás, QR codes, uploads).
++# Não confundir com assets de frontend: isso é dado da aplicação, servido em /media.
++MEDIA_ROOT = "media"
++UPLOAD_FOLDER = os.path.join(MEDIA_ROOT, "uploads")
++OUTPUT_FOLDER = os.path.join(MEDIA_ROOT, "outputs")
++QR_FOLDER = os.path.join(MEDIA_ROOT, "qrcodes")
+ 
+ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+ os.makedirs(QR_FOLDER, exist_ok=True)
+ 
+ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+-print(BASE_DIR)
+diff --git a/frontend-reference/README.md b/frontend-reference/README.md
+new file mode 100644
+index 0000000..7c2af08
+--- /dev/null
++++ b/frontend-reference/README.md
+@@ -0,0 +1,21 @@
++# Referência visual (não é código do frontend novo)
++
++Este material era o antigo frontend server-rendered (Jinja2), removido do
++backend em `feature/split-backend-frontend`. Ele **não roda mais** — o
++FastAPI não serve mais `templates/` nem esses assets estáticos.
++
++Está aqui só para servir de referência ao construir o novo frontend em
++React/Tailwind:
++
++- `templates/` — telas HTML existentes (login, dashboard, criação e edição
++  de campanha, cadastro, recuperação de senha, etc). Útil para ver que
++  campos, textos e fluxos cada tela precisa reproduzir.
++- `static-assets/css` — estilos usados nessas telas.
++- `static-assets/icons` — ícones usados nessas telas.
++- `static-assets/folders` — exemplo de crachá/folder gerado pela API
++  (não confundir com `media/`, que é onde a API grava esse tipo de arquivo
++  em runtime).
++
++Quando a página React equivalente estiver pronta, o arquivo correspondente
++aqui pode ser apagado. Quando tudo estiver migrado, esta pasta inteira pode
++sair do repositório.
+diff --git a/static/css/base.css b/frontend-reference/static-assets/css/base.css
+similarity index 100%
+rename from static/css/base.css
+rename to frontend-reference/static-assets/css/base.css
+diff --git a/static/css/campanha.css b/frontend-reference/static-assets/css/campanha.css
+similarity index 100%
+rename from static/css/campanha.css
+rename to frontend-reference/static-assets/css/campanha.css
+diff --git a/static/folders/folder_final_540.618.010-07_0001.pdf b/frontend-reference/static-assets/folders/folder_final_540.618.010-07_0001.pdf
+similarity index 100%
+rename from static/folders/folder_final_540.618.010-07_0001.pdf
+rename to frontend-reference/static-assets/folders/folder_final_540.618.010-07_0001.pdf
+diff --git a/static/icons/add.png b/frontend-reference/static-assets/icons/add.png
+similarity index 100%
+rename from static/icons/add.png
+rename to frontend-reference/static-assets/icons/add.png
+diff --git a/static/icons/link.png b/frontend-reference/static-assets/icons/link.png
+similarity index 100%
+rename from static/icons/link.png
+rename to frontend-reference/static-assets/icons/link.png
+diff --git a/static/icons/presente.png b/frontend-reference/static-assets/icons/presente.png
+similarity index 100%
+rename from static/icons/presente.png
+rename to frontend-reference/static-assets/icons/presente.png
+diff --git a/static/icons/seguidores.png b/frontend-reference/static-assets/icons/seguidores.png
+similarity index 100%
+rename from static/icons/seguidores.png
+rename to frontend-reference/static-assets/icons/seguidores.png
+diff --git a/templates/base.html b/frontend-reference/templates/base.html
+similarity index 100%
+rename from templates/base.html
+rename to frontend-reference/templates/base.html
+diff --git a/templates/campaign_create.html b/frontend-reference/templates/campaign_create.html
+similarity index 100%
+rename from templates/campaign_create.html
+rename to frontend-reference/templates/campaign_create.html
+diff --git a/templates/campaign_detail.html b/frontend-reference/templates/campaign_detail.html
+similarity index 100%
+rename from templates/campaign_detail.html
+rename to frontend-reference/templates/campaign_detail.html
+diff --git a/templates/campaign_edit.html b/frontend-reference/templates/campaign_edit.html
+similarity index 100%
+rename from templates/campaign_edit.html
+rename to frontend-reference/templates/campaign_edit.html
+diff --git a/templates/campanha.html b/frontend-reference/templates/campanha.html
+similarity index 100%
+rename from templates/campanha.html
+rename to frontend-reference/templates/campanha.html
+diff --git a/templates/dashboard.html b/frontend-reference/templates/dashboard.html
+similarity index 100%
+rename from templates/dashboard.html
+rename to frontend-reference/templates/dashboard.html
+diff --git a/templates/error.html b/frontend-reference/templates/error.html
+similarity index 100%
+rename from templates/error.html
+rename to frontend-reference/templates/error.html
+diff --git a/templates/forgot_password.html b/frontend-reference/templates/forgot_password.html
+similarity index 100%
+rename from templates/forgot_password.html
+rename to frontend-reference/templates/forgot_password.html
+diff --git a/templates/login.html b/frontend-reference/templates/login.html
+similarity index 100%
+rename from templates/login.html
+rename to frontend-reference/templates/login.html
+diff --git a/templates/pagina_inicial.html b/frontend-reference/templates/pagina_inicial.html
+similarity index 100%
+rename from templates/pagina_inicial.html
+rename to frontend-reference/templates/pagina_inicial.html
+diff --git a/templates/qrcode.html b/frontend-reference/templates/qrcode.html
+similarity index 100%
+rename from templates/qrcode.html
+rename to frontend-reference/templates/qrcode.html
+diff --git a/templates/register.html b/frontend-reference/templates/register.html
+similarity index 100%
+rename from templates/register.html
+rename to frontend-reference/templates/register.html
+diff --git a/main.py b/main.py
+index 265769f..35183ae 100644
+--- a/main.py
++++ b/main.py
+@@ -2,14 +2,15 @@ import os
+ from contextlib import asynccontextmanager
+ 
+ from fastapi import FastAPI, HTTPException, Request
+-from fastapi.responses import HTMLResponse
++from fastapi.middleware.cors import CORSMiddleware
++from fastapi.responses import JSONResponse
+ from fastapi.staticfiles import StaticFiles
+-from fastapi.templating import Jinja2Templates
+ 
+ from config.settings import BASE_DIR
+ from src.infra.database.init_db import init_db
+ from src.infra.dy.container import Container
+ from src.infra.router.routers import routers as v1_routers
++from src.infra.settings.settings import settings
+ 
+ container = Container()
+ 
+@@ -42,15 +43,26 @@ app = FastAPI(
+     version="1.0.0",
+ )
+ 
+-app.include_router(v1_routers)
+-
++# Backend agora é 100% API. O frontend (React) roda em outra origem, então
++# precisamos liberar CORS explicitamente para ela. Configure FRONTEND_URL
++# no .env (ex: http://localhost:5173 em dev, ou a URL de produção).
++app.add_middleware(
++    CORSMiddleware,
++    allow_origins=settings.CORS_ORIGINS,
++    allow_credentials=True,
++    allow_methods=["*"],
++    allow_headers=["*"],
++)
+ 
+-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
++app.include_router(v1_routers)
+ 
++# /media serve SOMENTE conteúdo gerado em runtime pela API (crachás, QR codes,
++# uploads) — não é frontend. Assets de UI (css/icons/templates antigos) foram
++# movidos para frontend-reference/ e não são mais servidos pelo backend.
+ app.mount(
+-    "/static",
+-    StaticFiles(directory=os.path.join(BASE_DIR, "static")),
+-    name="static",
++    "/media",
++    StaticFiles(directory=os.path.join(BASE_DIR, "media")),
++    name="media",
+ )
+ 
+ 
+@@ -59,27 +71,7 @@ async def custom_http_exception_handler(
+     request: Request,
+     exc: HTTPException,
+ ):
+-    if exc.status_code == 403:
+-        return templates.TemplateResponse(
+-            request,
+-            "error.html",
+-            {
+-                "message": exc.detail,
+-            },
+-            status_code=403,
+-        )
+-
+-    if exc.status_code == 404:
+-        return templates.TemplateResponse(
+-            request,
+-            "error.html",
+-            {
+-                "message": "Página não encontrada",
+-            },
+-            status_code=404,
+-        )
+-
+-    return HTMLResponse(
+-        content=str(exc.detail),
++    return JSONResponse(
++        content={"detail": exc.detail},
+         status_code=exc.status_code,
+     )
+diff --git a/src/infra/router/endpoint/campaign_route.py b/src/infra/router/endpoint/campaign_route.py
+index db6e7f6..aa13ceb 100644
+--- a/src/infra/router/endpoint/campaign_route.py
++++ b/src/infra/router/endpoint/campaign_route.py
+@@ -1,13 +1,8 @@
+-import os
+-
+ from dependency_injector.wiring import Provide, inject
+-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+-from fastapi.responses import HTMLResponse
+-from fastapi.templating import Jinja2Templates
++from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+ from sqlalchemy.orm import Session
+-from starlette.responses import RedirectResponse
++from starlette import status
+ 
+-from config.settings import BASE_DIR
+ from src.application.auth.auth import get_current_user
+ from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
+ from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
+@@ -24,11 +19,10 @@ from src.infra.repositories.campaign_repository import CampanhaRepository
+ 
+ router = APIRouter(prefix="/campanhas")
+ 
+-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+-
+ 
+ def campaign_to_dict(campaign):
+     return {
++        "id": campaign.id,
+         "title": campaign.title,
+         "paragraph": campaign.paragraph,
+         "post_type": campaign.post_type,
+@@ -41,49 +35,29 @@ def campaign_to_dict(campaign):
+     }
+ 
+ 
+-@router.get("/new", response_class=HTMLResponse)
+-async def show_campaign_form(request: Request):
+-    return templates.TemplateResponse(
+-        request,
+-        "campaign_create.html",
+-        {
+-            "title": "",
+-            "paragraph": "",
+-            "cpf": "",
+-            "matricula": "",
+-            "errors": [],
+-        },
+-    )
+-
+-
+-@router.get("/by-usuario", response_class=HTMLResponse)
++@router.get("/by-usuario")
+ @inject
+-async def form_page(
+-    request: Request,
++async def dashboard(
+     user: dict = Depends(get_current_user),
+     db: Session = Depends(get_db),
+     dashboard_usecase: DashboardUseCase = Depends(Provide[Container.dashboard_usecase]),
+ ):
++    """Dados do dashboard do usuário logado (campanhas, indicadores, planos)."""
+     time_id = db.query(UserModel.time_id).filter(UserModel.id == user["id"]).scalar()
+ 
+     resultado = dashboard_usecase.get_dashboard_data(user_id=user["id"], time_id=time_id)
+ 
+-    return templates.TemplateResponse(
+-        request,
+-        "dashboard.html",
+-        {
+-            "user": user,
+-            "module": {"carousel_item": resultado["campanhas"]},
+-            "dashboard_data": resultado["dashboard_data"],
+-            "planos_cores": resultado["planos_cores"],
+-        },
+-    )
++    return {
++        "user": user,
++        "campanhas": resultado["campanhas"],
++        "dashboard_data": resultado["dashboard_data"],
++        "planos_cores": resultado["planos_cores"],
++    }
+ 
+ 
+-@router.get("/{campaign_id}/view", response_class=HTMLResponse)
++@router.get("/{campaign_id}")
+ @inject
+ async def campaign_detail(
+-    request: Request,
+     campaign_id: int,
+     user: dict = Depends(get_current_user),
+     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+@@ -95,31 +69,24 @@ async def campaign_detail(
+         raise HTTPException(status_code=404, detail="Campanha não encontrada")
+ 
+     if user["role"] not in ["colaborador", "gerente", "coo"]:
+-        return templates.TemplateResponse(
+-            request,
+-            "error.html",
+-            {"message": "Acesso negado"},
+-            status_code=403,
+-        )
+-    template_name = "campaign_detail.html" if user["role"] == "colaborador" else "campaign_edit.html"
++        raise HTTPException(status_code=403, detail="Acesso negado")
+ 
++    # O frontend decide, com base em user.role, se mostra a tela de detalhe
++    # (colaborador) ou a tela de edição (gerente/coo) — antes isso escolhia
++    # o template no backend, agora é decisão de UI.
+     user_times = time_usecase.get_times_by_user(user["id"])
+-    # print(f"ID: {user_times.id}, Nome: {user_times.name}")
+-    return templates.TemplateResponse(
+-        request,
+-        template_name,
+-        {
+-            "campaign": campaign,
+-            "user": user,
+-            "times": user_times,
+-        },
+-    )
+ 
++    return {
++        "campaign": campaign_to_dict(campaign),
++        "user": user,
++        "times": user_times,
++        "editable": user["role"] != "colaborador",
++    }
+ 
+-@router.post("/{campaign_id}/edit", response_class=HTMLResponse)
++
++@router.put("/{campaign_id}")
+ @inject
+ async def update_campaign(
+-    request: Request,
+     campaign_id: int,
+     title: str | None = Form(None),
+     paragraph: str | None = Form(None),
+@@ -142,16 +109,12 @@ async def update_campaign(
+     )
+     campaign = use_case.execute(user=user, campaign_id=campaign_id, update_dto=update_dto)
+ 
+-    return templates.TemplateResponse(
+-        "campaign_edit.html",
+-        {"request": request, "campaign": campaign, "user": user, "message": "Campanha atualizada com sucesso!"},
+-    )
++    return {"message": "Campanha atualizada com sucesso!", "campaign": campaign_to_dict(campaign)}
+ 
+ 
+-@router.post("/create", response_class=HTMLResponse, response_model=None)
++@router.post("/", status_code=status.HTTP_201_CREATED)
+ @inject
+-async def generate(
+-    request: Request,
++async def create_campaign(
+     title: str = Form(...),
+     paragraph: str = Form(...),
+     cpf: str = Form(...),
+@@ -163,37 +126,27 @@ async def generate(
+     folder_image: UploadFile = File(...),
+     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
+ ):
+-    errors = []
+-
+     if not validar_cpf(cpf):
+-        errors.append("CPF inválido!")
+-
+-    if not errors:
+-        output_filename = await generate_folder_with_qr(cpf, matricula, folder_image)
+-        output_url = f"/static/outputs/{output_filename}"
+-        try:
+-            data = CampanhaCreateDTO(
+-                title=title,
+-                paragraph=paragraph,
+-                cpf_usuario=cpf,
+-                image=output_url,
+-                url=url or "",
+-                post_type=post_type or "",
+-                folder_url=folder_url or "",
+-                qrcode_url=qrcode_url or "",
+-            )
+-
+-            clean_data = {k: v for k, v in data.model_dump().items() if v is not None}
+-            dto = CampanhaCreateDTO(**clean_data)
+-            use_case.execute(dto)
+-
+-            return RedirectResponse(url="/campanhas/by-usuario", status_code=302)
+-
+-        except ValueError as e:
+-            errors.append(str(e))
+-
+-    return templates.TemplateResponse(
+-        request,
+-        "campaign_create.html",
+-        {"title": title, "paragraph": paragraph, "cpf": cpf, "matricula": matricula, "errors": errors},
+-    )
++        raise HTTPException(status_code=400, detail="CPF inválido!")
++
++    output_filename = await generate_folder_with_qr(cpf, matricula, folder_image)
++    output_url = f"/media/outputs/{output_filename}"
++
++    try:
++        data = CampanhaCreateDTO(
++            title=title,
++            paragraph=paragraph,
++            cpf_usuario=cpf,
++            image=output_url,
++            url=url or "",
++            post_type=post_type or "",
++            folder_url=folder_url or "",
++            qrcode_url=qrcode_url or "",
++        )
++        clean_data = {k: v for k, v in data.model_dump().items() if v is not None}
++        dto = CampanhaCreateDTO(**clean_data)
++        campaign = use_case.execute(dto)
++        return {"message": "Campanha criada com sucesso!", "campaign": campaign_to_dict(campaign)}
++
++    except ValueError as e:
++        raise HTTPException(status_code=400, detail=str(e)) from e
+diff --git a/src/infra/router/endpoint/pagina_inicial_router.py b/src/infra/router/endpoint/pagina_inicial_router.py
+deleted file mode 100644
+index 322d031..0000000
+--- a/src/infra/router/endpoint/pagina_inicial_router.py
++++ /dev/null
+@@ -1,16 +0,0 @@
+-from fastapi import APIRouter, Depends, Request
+-from fastapi.responses import HTMLResponse
+-from fastapi.templating import Jinja2Templates
+-
+-from src.application.auth.auth import get_current_user
+-
+-router = APIRouter(prefix="/pagina", tags=["Initial"])
+-templates = Jinja2Templates(directory="templates")
+-
+-
+-@router.get("/inicial", response_class=HTMLResponse)
+-def initial_page(
+-    request: Request,
+-    user: dict = Depends(get_current_user),
+-):
+-    return templates.TemplateResponse(request, "pagina_inicial.html", {"user": user})
+diff --git a/src/infra/router/endpoint/root.py b/src/infra/router/endpoint/root.py
+index e1019a2..6a0d9f4 100644
+--- a/src/infra/router/endpoint/root.py
++++ b/src/infra/router/endpoint/root.py
+@@ -1,11 +1,9 @@
+-from fastapi import APIRouter, Request
+-from fastapi.responses import HTMLResponse
+-from fastapi.templating import Jinja2Templates
++from fastapi import APIRouter
+ 
+ router = APIRouter()
+-templates = Jinja2Templates(directory="templates")
+ 
+ 
+-@router.get("/", response_class=HTMLResponse)
+-def read_root(request: Request):
+-    return templates.TemplateResponse(request, "login.html", {"user": None})
++@router.get("/")
++def health_check():
++    """Health-check simples. A tela de login/landing agora é responsabilidade do frontend."""
++    return {"status": "ok", "service": "Propulsor de vendas API"}
+diff --git a/src/infra/router/endpoint/user_route.py b/src/infra/router/endpoint/user_route.py
+index f75aeb6..3422986 100644
+--- a/src/infra/router/endpoint/user_route.py
++++ b/src/infra/router/endpoint/user_route.py
+@@ -1,11 +1,9 @@
+ import secrets
+ 
+ from dependency_injector.wiring import Provide, inject
+-from fastapi import APIRouter, Depends, Form, HTTPException, Request
++from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+ from passlib.context import CryptContext
+ from starlette import status
+-from starlette.responses import HTMLResponse, RedirectResponse
+-from starlette.templating import Jinja2Templates
+ 
+ from src.application.auth.auth import authenticate_user, create_access_token, get_current_user
+ from src.application.dtos.user_create_dto import UserCreateDTO
+@@ -17,7 +15,6 @@ from src.infra.dy.container import Container
+ 
+ router = APIRouter(prefix="/user")
+ 
+-templates = Jinja2Templates(directory="templates")
+ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ 
+ 
+@@ -45,10 +42,15 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
+     return usecase.list_users()
+ 
+ 
+-@router.post("/register")
++@router.get("/me")
++def read_current_user(user: dict = Depends(get_current_user)):
++    """Retorna o usuário autenticado. O frontend chama isso ao carregar para saber se há sessão válida."""
++    return user
++
++
++@router.post("/register", status_code=status.HTTP_201_CREATED)
+ @inject
+ def register_user(
+-    request: Request,
+     username: str = Form(...),
+     full_name: str = Form(...),
+     cpf: str = Form(...),
+@@ -73,86 +75,53 @@ def register_user(
+             novo_time=novo_time,
+             time_id=parse_optional_int(time_id),
+         )
+-        # print("DEBUG create_user:", user_data)
+         user_usecase.create_user(user_data)
+-        return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
+-
+-    except HTTPException as e:
+-        print("Erro:", getattr(e, "detail", str(e)))
+-        response = templates.TemplateResponse(
+-            request,
+-            "register.html",
+-            {
+-                "error": e.detail,
+-                "user": None,
+-                "gerentes": user_usecase.list_by_role("gerente"),
+-                "time": user_usecase.list_all_times(),
+-            },
+-        )
+-        user_usecase.close()
+-        return response
++        return {"message": "Usuário cadastrado com sucesso"}
+ 
+-
+-@router.get("/forgot-password")
+-def show_forgot_password(request: Request):
+-    return templates.TemplateResponse(request, "forgot_password.html", {"user": None})
++    except HTTPException:
++        raise
++    finally:
++        user_usecase.close()
+ 
+ 
+ @router.post("/forgot-password")
+-def reset_password(request: Request, cpf: str = Form(...)):
++def reset_password(cpf: str = Form(...)):
+     db = SessionLocal()
+-    usuario = db.query(UserModel).filter_by(cpf=cpf).first()
++    try:
++        usuario = db.query(UserModel).filter_by(cpf=cpf).first()
+ 
+-    if not usuario:
+-        return templates.TemplateResponse(
+-            request, "forgot_password.html", {"error": "CPF não encontrado.", "user": None}
+-        )
++        if not usuario:
++            raise HTTPException(status_code=404, detail="CPF não encontrado.")
+ 
+-    nova_senha = secrets.token_hex(4)
+-    print(nova_senha)
+-    usuario.hashed_password = pwd_context.hash(nova_senha)
+-    db.commit()
+-    db.close()
++        nova_senha = secrets.token_hex(4)
++        usuario.hashed_password = pwd_context.hash(nova_senha)
++        db.commit()
+ 
+-    return templates.TemplateResponse(request, "forgot_password.html", {"message": f"Sua nova senha é: {nova_senha}"})
++        # TODO: enviar a nova senha por e-mail/SMS em vez de retornar na resposta.
++        return {"message": f"Sua nova senha é: {nova_senha}"}
++    finally:
++        db.close()
+ 
+ 
+-@router.post("/cadastro", response_class=HTMLResponse)
+-def login_web(request: Request, username: str = Form(...), password: str = Form(...)):
++@router.post("/login")
++def login(response: Response, username: str = Form(...), password: str = Form(...)):
+     user = authenticate_user(username, password)
+-    if user:
+-        access_token = create_access_token(data={"sub": user["username"], "role": user["role"]})
+-        response = RedirectResponse(url="/pagina/inicial", status_code=status.HTTP_302_FOUND)
+-        response.set_cookie("access_token", f"Bearer {access_token}", httponly=True, secure=True, samesite="Lax")
+-        return response
+-    return templates.TemplateResponse(
+-        request,
+-        "login.html",
+-        {
+-            "error": "Credenciais inválidas",
+-            "user": None,
+-        },
++    if not user:
++        raise HTTPException(status_code=401, detail="Credenciais inválidas")
++
++    access_token = create_access_token(data={"sub": user["username"], "role": user["role"]})
++
++    # Cookie httponly continua sendo a forma mais segura de guardar o token.
++    # Em dev com frontend em outra origem, use um proxy do Vite para /api
++    # (mesma origem) OU sirva com SameSite="none"; Secure=True atrás de HTTPS.
++    response.set_cookie(
++        "access_token",
++        f"Bearer {access_token}",
++        httponly=True,
++        secure=True,
++        samesite="Lax",
+     )
+-
+-
+-@router.get("/register")
+-@inject
+-def show_register_form(
+-    request: Request,
+-    user: dict = Depends(get_current_user),
+-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+-):
+-    response = templates.TemplateResponse(
+-        request,
+-        "register.html",
+-        {
+-            "user": user,
+-            "gerentes": user_usecase.list_by_role("gerente"),
+-            "time": user_usecase.list_all_times(),
+-        },
+-    )
+-    user_usecase.close()
+-    return response
++    return {"username": user["username"], "role": user["role"]}
+ 
+ 
+ @router.get("/gerentes", response_model=list[UserOut])
+@@ -164,8 +133,7 @@ async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.use
+     return result
+ 
+ 
+-@router.get("/logout")
+-def logout():
+-    response = RedirectResponse(url="/", status_code=302)
++@router.post("/logout")
++def logout(response: Response):
+     response.delete_cookie("access_token")
+-    return response
++    return {"message": "Logout realizado com sucesso"}
+diff --git a/src/infra/router/routers.py b/src/infra/router/routers.py
+index 094fec0..2aa5356 100644
+--- a/src/infra/router/routers.py
++++ b/src/infra/router/routers.py
+@@ -1,7 +1,6 @@
+ from fastapi import APIRouter
+ 
+ from src.infra.router.endpoint.campaign_route import router as campaign_router
+-from src.infra.router.endpoint.pagina_inicial_router import router as pagina_router
+ from src.infra.router.endpoint.root import router as root_router
+ from src.infra.router.endpoint.team_route import router as team_router
+ from src.infra.router.endpoint.user_route import router as user_router
+@@ -14,4 +13,3 @@ routers.include_router(user_router)
+ routers.include_router(venda_router)
+ routers.include_router(root_router)
+ routers.include_router(team_router)
+-routers.include_router(pagina_router)
+diff --git a/src/infra/settings/settings.py b/src/infra/settings/settings.py
+index fbaffa2..45d0e63 100644
+--- a/src/infra/settings/settings.py
++++ b/src/infra/settings/settings.py
+@@ -13,11 +13,19 @@ class Settings(BaseSettings):
+     ALGORITHM: str
+     ACCESS_TOKEN_EXPIRE_MINUTES: int
+ 
++    # Origens permitidas para o frontend consumir a API (CORS).
++    # Ex no .env: CORS_ORIGINS=http://localhost:5173,https://app.seudominio.com
++    CORS_ORIGINS_RAW: str = "http://localhost:5173"
++
+     model_config = SettingsConfigDict(
+         env_file=".env",
+         extra="ignore",
+     )
+ 
++    @property
++    def CORS_ORIGINS(self) -> list[str]:
++        return [origin.strip() for origin in self.CORS_ORIGINS_RAW.split(",") if origin.strip()]
++
+     @property
+     def database_url(self) -> str:
+         user = quote_plus(self.POSTGRES_USER)
+diff --git a/tests/test_user_flow.py b/tests/test_user_flow.py
+index 098a23c..efedf63 100644
+--- a/tests/test_user_flow.py
++++ b/tests/test_user_flow.py
+@@ -17,11 +17,10 @@ def _register_form(**overrides):
+ 
+ 
+ def test_register_new_user_via_form(client):
+-    response = client.post("/user/register", data=_register_form(), follow_redirects=False)
++    response = client.post("/user/register", data=_register_form())
+ 
+-    # The route redirects back to the register page on success.
+-    assert response.status_code == 302
+-    assert response.headers["location"] == "/user/register"
++    assert response.status_code == 201
++    assert response.json() == {"message": "Usuário cadastrado com sucesso"}
+ 
+ 
+ def test_register_duplicate_cpf_shows_error_instead_of_crashing(client):
+@@ -32,59 +31,53 @@ def test_register_duplicate_cpf_shows_error_instead_of_crashing(client):
+         data=_register_form(username="outro.usuario"),
+     )
+ 
+-    assert response.status_code == 200
+-    assert "j\u00e1 est\u00e1 cadastrado" in response.text.lower() or "cadastrado" in response.text.lower()
++    assert response.status_code == 400
++    assert "cadastrado" in response.json()["detail"].lower()
+ 
+ 
+-def test_login_with_correct_credentials_sets_cookie_and_redirects(client):
++def test_login_with_correct_credentials_sets_cookie_and_returns_user(client):
+     client.post("/user/register", data=_register_form())
+ 
+     response = client.post(
+-        "/user/cadastro",
++        "/user/login",
+         data={"username": "joao.gerente", "password": "senha-forte-123"},
+-        follow_redirects=False,
+     )
+ 
+-    assert response.status_code == 302
+-    assert response.headers["location"] == "/pagina/inicial"
++    assert response.status_code == 200
++    assert response.json() == {"username": "joao.gerente", "role": "gerente"}
+     assert "access_token" in response.cookies
+ 
+ 
+-def test_login_with_wrong_password_shows_login_form_again(client):
++def test_login_with_wrong_password_returns_401(client):
+     client.post("/user/register", data=_register_form())
+ 
+     response = client.post(
+-        "/user/cadastro",
++        "/user/login",
+         data={"username": "joao.gerente", "password": "senha-errada"},
+     )
+ 
+-    # NOTE: login.html doesn't currently render the `error` message the
+-    # route passes it (tracked as a known issue - see README). What we can
+-    # verify today is that a wrong password does NOT log the user in: no
+-    # redirect, no access_token cookie, same login form re-rendered.
+-    assert response.status_code == 200
++    assert response.status_code == 401
+     assert "access_token" not in response.cookies
+-    assert "<form" in response.text.lower()
+ 
+ 
+-def test_register_page_requires_authentication(client):
+-    response = client.get("/user/register", follow_redirects=False)
++def test_me_endpoint_requires_authentication(client):
++    response = client.get("/user/me")
+ 
+     assert response.status_code == 401
+ 
+ 
+-def test_authenticated_user_can_load_register_page(client):
++def test_authenticated_user_can_fetch_me(client):
+     client.post("/user/register", data=_register_form())
+     login = client.post(
+-        "/user/cadastro",
++        "/user/login",
+         data={"username": "joao.gerente", "password": "senha-forte-123"},
+-        follow_redirects=False,
+     )
+     client.cookies.set("access_token", login.cookies["access_token"])
+ 
+-    response = client.get("/user/register")
++    response = client.get("/user/me")
+ 
+     assert response.status_code == 200
++    assert response.json()["username"] == "joao.gerente"
+ 
+ 
+ def test_gerentes_endpoint_lists_created_manager(client):
+-- 
+2.43.0

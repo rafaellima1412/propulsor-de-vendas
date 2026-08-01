@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 
-@router.get("/", response_class=HTMLResponse)
-def read_root(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"user": None})
+@router.get("/")
+def health_check():
+    """Health-check simples. A tela de login/landing agora é responsabilidade do frontend."""
+    return {"status": "ok", "service": "Propulsor de vendas API"}

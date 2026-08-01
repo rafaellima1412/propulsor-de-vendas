@@ -2,14 +2,15 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from config.settings import BASE_DIR
 from src.infra.database.init_db import init_db
 from src.infra.dy.container import Container
 from src.infra.router.routers import routers as v1_routers
+from src.infra.settings.settings import settings
 
 container = Container()
 
@@ -42,15 +43,26 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Backend agora é 100% API. O frontend (React) roda em outra origem, então
+# precisamos liberar CORS explicitamente para ela. Configure FRONTEND_URL
+# no .env (ex: http://localhost:5173 em dev, ou a URL de produção).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(v1_routers)
 
-
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-
+# /media serve SOMENTE conteúdo gerado em runtime pela API (crachás, QR codes,
+# uploads) — não é frontend. Assets de UI (css/icons/templates antigos) foram
+# movidos para frontend-reference/ e não são mais servidos pelo backend.
 app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "static")),
-    name="static",
+    "/media",
+    StaticFiles(directory=os.path.join(BASE_DIR, "media")),
+    name="media",
 )
 
 
@@ -59,27 +71,7 @@ async def custom_http_exception_handler(
     request: Request,
     exc: HTTPException,
 ):
-    if exc.status_code == 403:
-        return templates.TemplateResponse(
-            request,
-            "error.html",
-            {
-                "message": exc.detail,
-            },
-            status_code=403,
-        )
-
-    if exc.status_code == 404:
-        return templates.TemplateResponse(
-            request,
-            "error.html",
-            {
-                "message": "Página não encontrada",
-            },
-            status_code=404,
-        )
-
-    return HTMLResponse(
-        content=str(exc.detail),
+    return JSONResponse(
+        content={"detail": exc.detail},
         status_code=exc.status_code,
     )
