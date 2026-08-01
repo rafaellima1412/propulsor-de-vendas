@@ -1,11 +1,9 @@
 import secrets
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from passlib.context import CryptContext
 from starlette import status
-from starlette.responses import HTMLResponse, RedirectResponse
-from starlette.templating import Jinja2Templates
 
 from src.application.auth.auth import authenticate_user, create_access_token, get_current_user
 from src.application.dtos.user_create_dto import UserCreateDTO
@@ -17,7 +15,6 @@ from src.infra.dy.container import Container
 
 router = APIRouter(prefix="/user")
 
-templates = Jinja2Templates(directory="templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -45,10 +42,15 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
     return usecase.list_users()
 
 
-@router.post("/register")
+@router.get("/me")
+def read_current_user(user: dict = Depends(get_current_user)):
+    """Retorna o usuário autenticado. O frontend chama isso ao carregar para saber se há sessão válida."""
+    return user
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
 @inject
 def register_user(
-    request: Request,
     username: str = Form(...),
     full_name: str = Form(...),
     cpf: str = Form(...),
@@ -73,86 +75,53 @@ def register_user(
             novo_time=novo_time,
             time_id=parse_optional_int(time_id),
         )
-        # print("DEBUG create_user:", user_data)
         user_usecase.create_user(user_data)
-        return RedirectResponse(url="/user/register", status_code=status.HTTP_302_FOUND)
+        return {"message": "Usuário cadastrado com sucesso"}
 
-    except HTTPException as e:
-        print("Erro:", getattr(e, "detail", str(e)))
-        response = templates.TemplateResponse(
-            request,
-            "register.html",
-            {
-                "error": e.detail,
-                "user": None,
-                "gerentes": user_usecase.list_by_role("gerente"),
-                "time": user_usecase.list_all_times(),
-            },
-        )
+    except HTTPException:
+        raise
+    finally:
         user_usecase.close()
-        return response
-
-
-@router.get("/forgot-password")
-def show_forgot_password(request: Request):
-    return templates.TemplateResponse(request, "forgot_password.html", {"user": None})
 
 
 @router.post("/forgot-password")
-def reset_password(request: Request, cpf: str = Form(...)):
+def reset_password(cpf: str = Form(...)):
     db = SessionLocal()
-    usuario = db.query(UserModel).filter_by(cpf=cpf).first()
+    try:
+        usuario = db.query(UserModel).filter_by(cpf=cpf).first()
 
-    if not usuario:
-        return templates.TemplateResponse(
-            request, "forgot_password.html", {"error": "CPF não encontrado.", "user": None}
-        )
+        if not usuario:
+            raise HTTPException(status_code=404, detail="CPF não encontrado.")
 
-    nova_senha = secrets.token_hex(4)
-    print(nova_senha)
-    usuario.hashed_password = pwd_context.hash(nova_senha)
-    db.commit()
-    db.close()
+        nova_senha = secrets.token_hex(4)
+        usuario.hashed_password = pwd_context.hash(nova_senha)
+        db.commit()
 
-    return templates.TemplateResponse(request, "forgot_password.html", {"message": f"Sua nova senha é: {nova_senha}"})
+        # TODO: enviar a nova senha por e-mail/SMS em vez de retornar na resposta.
+        return {"message": f"Sua nova senha é: {nova_senha}"}
+    finally:
+        db.close()
 
 
-@router.post("/cadastro", response_class=HTMLResponse)
-def login_web(request: Request, username: str = Form(...), password: str = Form(...)):
+@router.post("/login")
+def login(response: Response, username: str = Form(...), password: str = Form(...)):
     user = authenticate_user(username, password)
-    if user:
-        access_token = create_access_token(data={"sub": user["username"], "role": user["role"]})
-        response = RedirectResponse(url="/pagina/inicial", status_code=status.HTTP_302_FOUND)
-        response.set_cookie("access_token", f"Bearer {access_token}", httponly=True, secure=True, samesite="Lax")
-        return response
-    return templates.TemplateResponse(
-        request,
-        "login.html",
-        {
-            "error": "Credenciais inválidas",
-            "user": None,
-        },
-    )
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
+    access_token = create_access_token(data={"sub": user["username"], "role": user["role"]})
 
-@router.get("/register")
-@inject
-def show_register_form(
-    request: Request,
-    user: dict = Depends(get_current_user),
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
-):
-    response = templates.TemplateResponse(
-        request,
-        "register.html",
-        {
-            "user": user,
-            "gerentes": user_usecase.list_by_role("gerente"),
-            "time": user_usecase.list_all_times(),
-        },
+    # Cookie httponly continua sendo a forma mais segura de guardar o token.
+    # Em dev com frontend em outra origem, use um proxy do Vite para /api
+    # (mesma origem) OU sirva com SameSite="none"; Secure=True atrás de HTTPS.
+    response.set_cookie(
+        "access_token",
+        f"Bearer {access_token}",
+        httponly=True,
+        secure=True,
+        samesite="Lax",
     )
-    user_usecase.close()
-    return response
+    return {"username": user["username"], "role": user["role"]}
 
 
 @router.get("/gerentes", response_model=list[UserOut])
@@ -164,8 +133,7 @@ async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.use
     return result
 
 
-@router.get("/logout")
-def logout():
-    response = RedirectResponse(url="/", status_code=302)
+@router.post("/logout")
+def logout(response: Response):
     response.delete_cookie("access_token")
-    return response
+    return {"message": "Logout realizado com sucesso"}

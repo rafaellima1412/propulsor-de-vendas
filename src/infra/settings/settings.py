@@ -13,10 +13,18 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
+    # Origens permitidas para o frontend consumir a API (CORS).
+    # Ex no .env: CORS_ORIGINS=http://localhost:5173,https://app.seudominio.com
+    CORS_ORIGINS_RAW: str = "http://localhost:5173"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
     )
+
+    @property
+    def CORS_ORIGINS(self) -> list[str]:
+        return [origin.strip() for origin in self.CORS_ORIGINS_RAW.split(",") if origin.strip()]
 
     @property
     def database_url(self) -> str:
