@@ -177,3 +177,4 @@ pyrightconfig.json
 media/uploads/
 media/outputs/
 media/qrcodes/
+*.patch

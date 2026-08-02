@@ -16,7 +16,7 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, campaign: Campaign) -> None:
+    def update(self, campaign: Campaign) -> Campaign:
         pass
 
     @abstractmethod

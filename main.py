@@ -21,6 +21,7 @@ container.wire(
         "src.infra.router.endpoint.venda_route",
         "src.infra.router.endpoint.campaign_route",
         "src.infra.router.endpoint.team_route",
+        "src.infra.router.endpoint.local_route",
     ]
 )
 

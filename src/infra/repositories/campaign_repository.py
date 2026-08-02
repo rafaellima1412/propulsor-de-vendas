@@ -3,7 +3,6 @@ from typing import Any
 from sqlalchemy.orm import Session, joinedload
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
-from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.domain.entities.campaign import Campaign
 from src.infra.database.models.user_model import UserModel
@@ -44,21 +43,21 @@ class CampanhaRepository(ICampanhaRepository):
         self.db.commit()
         self.db.refresh(db_campanha)
 
-        campaign = Campaign.from_orm(db_campanha)
+        campaign = Campaign(
+            id=db_campanha.id,
+            title=db_campanha.title,
+            paragraph=db_campanha.paragraph,
+            post_type=db_campanha.post_type,
+            url=db_campanha.url,
+            image=db_campanha.image,
+            folder_url=db_campanha.folder_url,
+            qrcode_url=db_campanha.qrcode_url,
+            data_criacao=db_campanha.data_criacao,
+            usuario_id=usuario_id,
+            times=[time.id for time in db_campanha.times],
+        )
         self.db.close()
         return campaign
-
-        # return Campaign(
-        #     id=db_campanha.id,
-        #     title=db_campanha.title,
-        #     paragraph=db_campanha.paragraph,
-        #     post_type=db_campanha.post_type,
-        #     url=db_campanha.url,
-        #     image=db_campanha.image,
-        #     folder_url=db_campanha.folder_url,
-        #     qrcode_url=db_campanha.qrcode_url,
-        #     data_criacao=db_campanha.data_criacao
-        # )
 
     def list_by_usuario_id(self, usuario_id: int) -> list[Campaign]:
         campanhas_db = (
@@ -79,6 +78,8 @@ class CampanhaRepository(ICampanhaRepository):
                 folder_url=c.folder_url,
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
+                usuario_id=usuario_id,
+                times=[time.id for time in c.times],
             )
             for c in campanhas_db
         ]
@@ -98,6 +99,7 @@ class CampanhaRepository(ICampanhaRepository):
             folder_url=db_campanha.folder_url,
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
+            usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
             times=[time.id for time in db_campanha.times],
         )
 
@@ -110,34 +112,37 @@ class CampanhaRepository(ICampanhaRepository):
     def get_time_by_id(self, time_id: int) -> TimeModel | None:
         return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
 
-    def update(self, campaign: UpdateCampaignDTO, usuario_id: int) -> Campaign:
+    def update(self, campaign: Campaign) -> Campaign:
         db_campaign = self.db.query(CampanhaModel).get(campaign.id)
         if not db_campaign:
             raise Exception("Campanha não encontrada")
 
         db_campaign.title = campaign.title
         db_campaign.paragraph = campaign.paragraph
-        # db_campaign.post_type = campaign.post_type
-        # db_campaign.url = campaign.url
-        # db_campaign.folder_url = campaign.folder_url
-        # db_campaign.qrcode_url = campaign.qrcode_url
-        # self.db.commit()
+        db_campaign.post_type = campaign.post_type
+        db_campaign.url = campaign.url
+        db_campaign.folder_url = campaign.folder_url
+        db_campaign.qrcode_url = campaign.qrcode_url
 
-        usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
-
-        if usuario.time_id:
-            time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
-            if not time:
-                raise ValueError("Time não encontrado")
-
-            # Substitui todos os times relacionados pela nova associação
-            db_campaign.times = [time]
+        # campaign.times já vem resolvido (lista de TimeModel) pelo use case,
+        # a partir dos time_ids explicitamente enviados na requisição.
+        db_campaign.times = campaign.times
 
         self.db.commit()
         self.db.refresh(db_campaign)
 
-        campaign = Campaign.from_orm(db_campaign)
+        updated_campaign = Campaign(
+            id=db_campaign.id,
+            title=db_campaign.title,
+            paragraph=db_campaign.paragraph,
+            post_type=db_campaign.post_type,
+            url=db_campaign.url,
+            image=db_campaign.image,
+            folder_url=db_campaign.folder_url,
+            qrcode_url=db_campaign.qrcode_url,
+            data_criacao=db_campaign.data_criacao,
+            usuario_id=db_campaign.usuarios[0].id if db_campaign.usuarios else None,
+            times=[time.id for time in db_campaign.times],
+        )
         self.db.close()
-        return campaign
+        return updated_campaign
