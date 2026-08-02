@@ -12,7 +12,12 @@ from src.domain.entities.user_schema import UserOut
 from src.infra.database.models.user_model import UserModel
 from src.infra.database.session import SessionLocal
 from src.infra.dy.container import Container
-from src.infra.router.schemas.user_requests import ForgotPasswordRequest, LoginRequest, UserRegisterRequest
+from src.infra.router.schemas.user_requests import (
+    AssignTimeRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    UserRegisterRequest,
+)
 
 router = APIRouter(prefix="/user")
 
@@ -111,6 +116,26 @@ async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.use
     result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
     user_usecase.close()
     return result
+
+
+@router.put("/{user_id}/time", response_model=UserOut)
+@inject
+def assign_user_time(
+    user_id: int,
+    payload: AssignTimeRequest,
+    current_user: dict = Depends(get_current_user),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    """Associa um usuário existente a um time (resolve 'usuário não está
+    associado a nenhum time' quando ele foi cadastrado sem time_id)."""
+    if current_user["role"] not in ["gerente", "coo"]:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    try:
+        user = user_usecase.assign_time(user_id, payload.time_id)
+        return UserOut.model_validate(user, from_attributes=True)
+    finally:
+        user_usecase.close()
 
 
 @router.post("/logout")
