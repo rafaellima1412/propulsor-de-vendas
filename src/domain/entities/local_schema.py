@@ -21,3 +21,17 @@ class LocalSchema(BaseModel):
     coordenadas: Coordenadas
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LocalCreate(BaseModel):
+    nome: str = Field(..., description="Nome do local")
+    coordenadas: Coordenadas
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LocalUpdate(BaseModel):
+    nome: str | None = Field(None, description="Nome do local")
+    coordenadas: Coordenadas | None = None
+
+    model_config = ConfigDict(from_attributes=True)

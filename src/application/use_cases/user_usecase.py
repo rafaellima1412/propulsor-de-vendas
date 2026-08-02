@@ -91,6 +91,25 @@ class UserUseCase:
     def list_all_times(self):
         return self.time_repo.list_all()
 
+    def assign_time(self, user_id: int, time_id: int) -> UserModel:
+        """Associa (ou reassocia) um usuário existente a um time.
+
+        É o que faltava para resolver o erro "Usuário não está associado a
+        nenhum time" ao criar campanhas: no cadastro (/user/register), o
+        time_id é opcional para colaborador, então um usuário pode acabar
+        sem time e ficar travado até alguém associá-lo por aqui.
+        """
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+        time = self.time_repo.get_by_id(time_id)
+        if not time:
+            raise HTTPException(status_code=404, detail="Time não encontrado.")
+
+        user.time_id = time_id
+        return self.user_repo.update(user)
+
     def close(self):
         self.user_repo.db.close()
         self.time_repo.db.close()

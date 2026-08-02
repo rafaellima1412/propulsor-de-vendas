@@ -23,3 +23,7 @@ class LoginRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     cpf: str
+
+
+class AssignTimeRequest(BaseModel):
+    time_id: int

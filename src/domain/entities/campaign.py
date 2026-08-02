@@ -8,6 +8,7 @@ class Campaign(BaseModel):
     title: str
     paragraph: str
     image: str | None = None
+    usuario_id: int | None = None
     times: list[int] | None = []
     post_type: str | None = None
     url: str | None = None
