@@ -9,3 +9,5 @@ class UpdateCampaignDTO(BaseModel):
     url: str | None = None
     folder_url: str | None = None
     qrcode_url: str | None = None
+    matricula: str | None = None
+    folder_image: str | None = None  # URL enviada pelo front; se presente, regenera a imagem com o QR

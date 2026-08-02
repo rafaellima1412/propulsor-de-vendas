@@ -118,7 +118,7 @@ async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.use
     return result
 
 
-@router.put("/{user_id}/time", response_model=UserOut)
+@router.put("/{user_id}/time")
 @inject
 def assign_user_time(
     user_id: int,
@@ -133,7 +133,13 @@ def assign_user_time(
 
     try:
         user = user_usecase.assign_time(user_id, payload.time_id)
-        return UserOut.model_validate(user, from_attributes=True)
+        
+        return {
+            "id": user.id,
+            "username": user.username,
+            "full_name": user.full_name,
+            "time_id": user.time_id,
+        }
     finally:
         user_usecase.close()
 
