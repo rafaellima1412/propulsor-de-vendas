@@ -69,6 +69,7 @@ class Container(containers.DeclarativeContainer):
     update_campaign_use_case = providers.Factory(
         UpdateCampaignUseCase,
         campanha_repo=campanha_repository,
+        user_repo=user_repository,
     )
 
     gerente_use_case = providers.Factory(GerenteUseCases, repo=gerente_repository)

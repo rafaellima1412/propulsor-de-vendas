@@ -1,5 +1,5 @@
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -91,44 +91,27 @@ async def update_campaign(
     user: dict = Depends(get_current_user),
     use_case: UpdateCampaignUseCase = Depends(Provide[Container.update_campaign_use_case]),
 ):
-    campaign = use_case.execute(user=user, campaign_id=campaign_id, update_dto=update_dto)
+    campaign = await use_case.execute(user=user, campaign_id=campaign_id, update_dto=update_dto)
 
     return {"message": "Campanha atualizada com sucesso!", "campaign": campaign_to_dict(campaign)}
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @inject
 async def create_campaign(
-    title: str = Form(...),
-    paragraph: str = Form(...),
-    cpf: str = Form(...),
-    matricula: str = Form(...),
-    post_type: str | None = Form(None),
-    url: str | None = Form(None),
-    folder_url: str | None = Form(None),
-    qrcode_url: str | None = Form(None),
-    folder_image: UploadFile = File(...),
+    payload: CampanhaCreateDTO,
     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
 ):
-    if not validar_cpf(cpf):
+    if not validar_cpf(payload.cpf_usuario):
         raise HTTPException(status_code=400, detail="CPF inválido!")
 
     try:
-        output_filename = await generate_folder_with_qr(cpf, matricula, folder_image)
+        output_filename = await generate_folder_with_qr(payload.cpf_usuario, payload.matricula, payload.folder_image)
         output_url = f"/media/outputs/{output_filename}"
-        data = CampanhaCreateDTO(
-            title=title,
-            paragraph=paragraph,
-            cpf_usuario=cpf,
-            image=output_url,
-            url=url or "",
-            post_type=post_type or "",
-            folder_url=folder_url or "",
-            qrcode_url=qrcode_url or "",
-        )
-        clean_data = {k: v for k, v in data.model_dump().items() if v is not None}
-        dto = CampanhaCreateDTO(**clean_data)
+
+        dto = payload.model_copy(update={"image": output_url})
         campaign = use_case.execute(dto)
         return {"message": "Campanha criada com sucesso!", "campaign": campaign_to_dict(campaign)}
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    

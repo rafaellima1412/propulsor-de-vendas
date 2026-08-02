@@ -15,6 +15,6 @@ class Campaign(BaseModel):
     folder_url: str | None = None
     qrcode_url: str | None = None
     is_active: bool = True
-    data_criacao: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    data_criacao: datetime | None = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config = ConfigDict(from_attributes=True)

@@ -178,3 +178,4 @@ media/uploads/
 media/outputs/
 media/qrcodes/
 *.patch
+.vscode

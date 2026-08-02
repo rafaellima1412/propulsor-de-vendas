@@ -123,6 +123,7 @@ class CampanhaRepository(ICampanhaRepository):
         db_campaign.url = campaign.url
         db_campaign.folder_url = campaign.folder_url
         db_campaign.qrcode_url = campaign.qrcode_url
+        db_campaign.image = campaign.image
 
         # campaign.times já vem resolvido (lista de TimeModel) pelo use case,
         # a partir dos time_ids explicitamente enviados na requisição.
