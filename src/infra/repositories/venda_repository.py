@@ -98,3 +98,36 @@ class VendaRepository:
             (int(ano), int(mes)): count
             for ano, mes, count in resultados
         }
+
+    def contagem_por_plano_all(self) -> dict[str, int]:
+        """Igual a contagem_por_plano, mas sem filtro de usuário — todas as vendas da empresa."""
+        resultados = (
+            self.db.query(VendaModel.plano, func.count(VendaModel.id))
+            .filter(VendaModel.status == "vendido")
+            .group_by(VendaModel.plano)
+            .all()
+        )
+
+        return {
+            plano.value if isinstance(plano, PlanoInternet) else plano: count
+            for plano, count in resultados
+        }
+
+    def contagem_por_mes_all(self) -> dict[tuple[int, int], int]:
+        """Igual a contagem_por_mes, mas sem filtro de usuário — todas as vendas da empresa."""
+        resultados = (
+            self.db.query(
+                extract("year", VendaModel.data_criacao).label("ano"),
+                extract("month", VendaModel.data_criacao).label("mes"),
+                func.count(VendaModel.id),
+            )
+            .filter(VendaModel.status == "vendido")
+            .group_by("ano", "mes")
+            .order_by("ano", "mes")
+            .all()
+        )
+
+        return {
+            (int(ano), int(mes)): count
+            for ano, mes, count in resultados
+        }

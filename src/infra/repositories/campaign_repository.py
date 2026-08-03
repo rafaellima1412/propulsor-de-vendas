@@ -134,6 +134,25 @@ class CampanhaRepository(ICampanhaRepository):
     def get_time_by_id(self, time_id: int) -> TimeModel | None:
         return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
 
+    def get_all(self) -> list[Campaign]:
+        campanhas_db = self.db.query(CampanhaModel).options(joinedload(CampanhaModel.usuarios)).all()
+        return [
+            Campaign(
+                id=c.id,
+                title=c.title,
+                paragraph=c.paragraph,
+                post_type=c.post_type,
+                url=c.url,
+                image=c.image,
+                folder_url=c.folder_url,
+                qrcode_url=c.qrcode_url,
+                data_criacao=c.data_criacao,
+                usuario_id=c.usuarios[0].id if c.usuarios else None,
+                times=[time.id for time in c.times],
+            )
+            for c in campanhas_db
+        ]
+
     def update(self, campaign: Campaign) -> Campaign:
         db_campaign = self.db.query(CampanhaModel).get(campaign.id)
         if not db_campaign:

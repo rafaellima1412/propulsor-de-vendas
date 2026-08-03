@@ -6,7 +6,7 @@ from src.domain.entities.time_schema import TimeOut
 
 class UserBase(BaseModel):
     username: str
-    full_name: str  # "gerente", "coo", "colaborador"
+    full_name: str  # "gerente", "coordenador", "colaborador"
     cpf: constr(min_length=11, max_length=14)
 
 
