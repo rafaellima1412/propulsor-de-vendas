@@ -14,8 +14,8 @@ class DashboardUseCase:
         self.venda_repo = venda_repo
         self.carteira_repo = carteira_repo
 
-    def get_dashboard_data(self, user_id: int, time_id: int) -> dict:
-        campanhas = self.campanha_repo.list_by_time_id(time_id)
+    def get_dashboard_data(self, user_id: int) -> dict:
+        campanhas = self.campanha_repo.list_by_usuario_id(user_id) 
         # vendas = self.venda_repo.list_vendas_by_usuario_id(user_id)
         # carteira = self.carteira_repo.list_carteira_by_usuario_id(user_id)
 

@@ -1,6 +1,5 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from starlette import status
 
 from src.application.auth.auth import get_current_user
@@ -12,8 +11,6 @@ from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
 from src.domain.validators.cpf_validator import validar_cpf
-from src.infra.database.db import get_db
-from src.infra.database.models.user_model import UserModel
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
 
@@ -39,17 +36,20 @@ def campaign_to_dict(campaign):
 @inject
 async def dashboard(
     user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
     dashboard_usecase: DashboardUseCase = Depends(Provide[Container.dashboard_usecase]),
 ):
-    """Dados do dashboard do usuário logado (campanhas, indicadores, planos)."""
-    time_id = db.query(UserModel.time_id).filter(UserModel.id == user["id"]).scalar()
+    """Dados do dashboard do usuário logado (campanhas, indicadores, planos).
 
-    resultado = dashboard_usecase.get_dashboard_data(user_id=user["id"], time_id=time_id)
+    O escopo dos dados muda de acordo com o papel: colaborador vê só os
+    próprios números; gerente vê o agregado dos times que gerencia; coo vê
+    o agregado dos times que coordena (ver DashboardUseCase._resolve_scope).
+    """
+    resultado = dashboard_usecase.get_dashboard_data(user=user)
 
     return {
         "user": user,
         "campanhas": resultado["campanhas"],
+        "scope": resultado["scope"],
         "dashboard_data": resultado["dashboard_data"],
         "planos_cores": resultado["planos_cores"],
     }
@@ -114,4 +114,3 @@ async def create_campaign(
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    

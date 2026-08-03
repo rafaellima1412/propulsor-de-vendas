@@ -20,9 +20,5 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
-    def get_time_by_id(self, time_id: int) -> Optional["TimeModel"]:
-        pass
-
-    @abstractmethod
     def get_by_id(self, campanha_id: int) -> CampanhaModel | None:
         pass
