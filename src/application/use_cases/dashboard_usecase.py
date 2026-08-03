@@ -1,10 +1,8 @@
-# application/usecases/dashboard_usecase.py
 import calendar
 
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.application.repositories.ICarteiraRepository import ICarteiraRepository
 from src.application.repositories.ivenda_repository import IVendaRepository
-
 
 class DashboardUseCase:
     def __init__(
