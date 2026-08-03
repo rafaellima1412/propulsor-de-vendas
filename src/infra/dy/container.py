@@ -85,5 +85,6 @@ class Container(containers.DeclarativeContainer):
         DashboardUseCase,
         campanha_repo=campanha_repository,
         venda_repo=venda_repository,
-        carteira_repo=carteira_repository,
+        user_repo=user_repository,
+        # time_repo=time_repository,
     )

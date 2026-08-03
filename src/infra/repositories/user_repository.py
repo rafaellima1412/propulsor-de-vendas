@@ -31,8 +31,7 @@ class UserRepository(IUserRepository):
         self.db.close()
         return user
 
-    def get_all(self):
-        return self.db.query(UserModel).all()
+    def get_all(self): return self.db.query(UserModel).all()
 
     def get_by_username(self, username: str) -> UserModel | None:
         return self.db.query(UserModel).filter(UserModel.username == username).first()
@@ -59,6 +58,3 @@ class UserRepository(IUserRepository):
         times = self.db.query(TimeModel).filter(TimeModel.gerente_id == gerente_id).all()
         time_ids = [t.id for t in times]
         return self.db.query(UserModel).filter(UserModel.time_id.in_(time_ids)).all()
-
-    def get_colaboradores_by_time(self, time_id: int) -> list[UserModel]:
-        return self.db.query(UserModel).filter(UserModel.time_id == time_id).all()

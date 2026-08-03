@@ -53,3 +53,11 @@ class TimeRepository(ITimeRepository):
         if not db_user:
             return []
         return [db_user.time]
+    
+    def get_colaboradores_by_time(self, time_id: int) -> list[UserModel]:
+        return self.db.query(UserModel).filter(UserModel.time_id == time_id).all()
+
+    def get_colaboradores_by_time_ids(self, time_ids: list[int]) -> list[UserModel]:
+        if not time_ids:
+            return []
+        return self.db.query(UserModel).filter(UserModel.time_id.in_(time_ids)).all()
