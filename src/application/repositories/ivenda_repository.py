@@ -30,3 +30,13 @@ class IVendaRepository(ABC):
     @abstractmethod
     def contagem_por_mes(self, usuario_ids: list[int]) -> dict[tuple[int, int], int]:
         pass
+
+    @abstractmethod
+    def contagem_por_plano_all(self) -> dict[str, int]:
+        """Igual a contagem_por_plano, mas sem filtro de usuário — todas as vendas da empresa."""
+        pass
+
+    @abstractmethod
+    def contagem_por_mes_all(self) -> dict[tuple[int, int], int]:
+        """Igual a contagem_por_mes, mas sem filtro de usuário — todas as vendas da empresa."""
+        pass

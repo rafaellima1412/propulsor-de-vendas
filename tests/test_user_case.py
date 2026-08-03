@@ -106,22 +106,22 @@ def test_create_gerente_with_existing_team_id_links_it(usecase, user_repo, time_
     time_repo.create.assert_not_called()
 
 
-def test_create_coo_requires_subordinado_id(usecase, user_repo):
-    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coo")
+def test_create_coordenador_requires_subordinado_id(usecase, user_repo):
+    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coordenador")
 
     with pytest.raises(HTTPException) as exc_info:
-        usecase.create_user(make_dto(role="coo"))
+        usecase.create_user(make_dto(role="coordenador"))
 
     assert exc_info.value.status_code == 400
-    assert "COO" in exc_info.value.detail
+    assert "Coordenador" in exc_info.value.detail
 
 
-def test_create_coo_with_invalid_subordinado_raises_404(usecase, user_repo):
-    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coo")
+def test_create_coordenador_with_invalid_subordinado_raises_404(usecase, user_repo):
+    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coordenador")
     user_repo.get_by_id.return_value = None
 
     with pytest.raises(HTTPException) as exc_info:
-        usecase.create_user(make_dto(role="coo", subordinado_id=99))
+        usecase.create_user(make_dto(role="coordenador", subordinado_id=99))
 
     assert exc_info.value.status_code == 404
 

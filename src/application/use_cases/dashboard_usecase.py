@@ -43,7 +43,7 @@ class DashboardUseCase:
                 },
                 "planos_cores": planos_cores,
             }
-        if user["role"] == "coo": 
+        if user["role"] == "coordenador": 
                     campanhas = self.campanha_repo.get_all() 
                     vendas_por_plano = self.venda_repo.contagem_por_plano_all()
                     vendas_por_mes = self.venda_repo.contagem_por_mes_all()

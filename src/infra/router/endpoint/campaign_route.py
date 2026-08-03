@@ -62,7 +62,7 @@ async def campaign_detail(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-    if user["role"] not in ["colaborador", "gerente", "coo"]:
+    if user["role"] not in ["colaborador", "gerente", "coordenador"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     # O frontend decide, com base em user.role, se mostra a tela de detalhe

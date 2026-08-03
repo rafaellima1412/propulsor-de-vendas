@@ -54,7 +54,7 @@ class UserUseCase:
                     new_user.time_id = user.time_id
                     self.user_repo.update(new_user)
 
-            elif user.role == "coo":
+            elif user.role == "coordenador":
                 if user.subordinado_id:
                     # Buscar o time do gerente subordinado
                     subordinado = self.user_repo.get_by_id(user.subordinado_id)
@@ -68,7 +68,7 @@ class UserUseCase:
                         time_update_data = TimeUpdate.from_orm(time)
                         self.time_repo.update(time.id, time_update_data)
                 else:
-                    raise HTTPException(status_code=400, detail="COO deve selecionar um gerente subordinado.")
+                    raise HTTPException(status_code=400, detail="Coordenador deve selecionar um gerente subordinado.")
 
             return new_user
         finally:
@@ -92,13 +92,6 @@ class UserUseCase:
         return self.time_repo.list_all()
 
     def assign_time(self, user_id: int, time_id: int) -> UserModel:
-        """Associa (ou reassocia) um usuário existente a um time.
-
-        É o que faltava para resolver o erro "Usuário não está associado a
-        nenhum time" ao criar campanhas: no cadastro (/user/register), o
-        time_id é opcional para colaborador, então um usuário pode acabar
-        sem time e ficar travado até alguém associá-lo por aqui.
-        """
         user = self.user_repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")

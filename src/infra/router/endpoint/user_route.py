@@ -41,7 +41,6 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
 
 @router.get("/me")
 def read_current_user(user: dict = Depends(get_current_user)):
-    """Retorna o usuário autenticado. O frontend chama isso ao carregar para saber se há sessão válida."""
     return user
 
 
@@ -126,7 +125,7 @@ def assign_user_time(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] not in ["gerente", "coo"]:
+    if current_user["role"] not in ["gerente", "coordenador"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     try:

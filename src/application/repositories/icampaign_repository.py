@@ -31,3 +31,7 @@ class ICampanhaRepository(ABC):
     @abstractmethod
     def get_by_id(self, campanha_id: int) -> CampanhaModel | None:
         pass
+
+    @abstractmethod
+    def get_all(self) -> list[Campaign]:
+        pass
