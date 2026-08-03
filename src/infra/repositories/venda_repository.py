@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 
 from src.application.dtos.venda_create_dto import VendaCreateDTO
 from src.domain.enums.enums import PlanoInternet
+from src.infra.database.models import campanha_time
+from src.infra.database.models.campaign_model import CampanhaModel
+from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.venda_model import VendaModel
 
 
@@ -23,32 +26,75 @@ class VendaRepository:
     def get_by_id(self, venda_id: int):
         return self.db.query(VendaModel).filter(VendaModel.id == venda_id).first()
 
-    def list_by_usuario_and_campanha(self, usuario_id: int, campanha_id: int) -> list[VendaModel]:
-        return (
-            self.db.query(VendaModel)
-            .filter(VendaModel.campanha_id == campanha_id, VendaModel.usuario_id == usuario_id)
+    def list_by_time_and_campanha(self) -> dict[str, int]:
+        resultados = (
+            self.db.query(
+                TimeModel.id,
+                TimeModel.name,
+                func.count(VendaModel.id).label("total_vendas"),
+            )
+            .join(
+                campanha_time,
+                campanha_time.time_id == TimeModel.id,
+            )
+            .join(
+                VendaModel,
+                VendaModel.campanha_id == campanha_time.campanha_id,
+            )
+            .group_by(TimeModel.id, TimeModel.name)
+            .order_by(TimeModel.name)
             .all()
         )
+        return {
+            nome: total
+            for _, nome, total in resultados
+        }
 
-    def contagem_por_plano(self, user_id: int) -> dict[str, int]:
+    def contagem_por_plano(self, usuario_ids: int | list[int]) -> dict[str, int]:
+        if isinstance(usuario_ids, int):
+            usuario_ids = [usuario_ids]
+
+        if not usuario_ids:
+            return {}
+        # print(usuario_ids, type(usuario_ids))
         resultados = (
             self.db.query(VendaModel.plano, func.count(VendaModel.id))
-            .filter(VendaModel.status == "vendido", VendaModel.usuario_id == user_id)
+            .filter(
+                VendaModel.status == "vendido",
+                VendaModel.usuario_id.in_(usuario_ids),
+            )
             .group_by(VendaModel.plano)
             .all()
         )
-        return {plano.value if isinstance(plano, PlanoInternet) else plano: count for plano, count in resultados}
 
-    def contagem_por_mes(self, user_id: int) -> dict[tuple[int, int], int]:
+        return {
+            plano.value if isinstance(plano, PlanoInternet) else plano: count
+            for plano, count in resultados
+        }
+
+    def contagem_por_mes(self,usuario_ids: int | list[int]) -> dict[tuple[int, int], int]:
+        if isinstance(usuario_ids, int):
+            usuario_ids = [usuario_ids]
+
+        if not usuario_ids:
+            return {}
+
         resultados = (
             self.db.query(
                 extract("year", VendaModel.data_criacao).label("ano"),
                 extract("month", VendaModel.data_criacao).label("mes"),
                 func.count(VendaModel.id),
             )
-            .filter(VendaModel.status == "vendido", VendaModel.usuario_id == user_id)
+            .filter(
+                VendaModel.status == "vendido",
+                VendaModel.usuario_id.in_(usuario_ids),
+            )
             .group_by("ano", "mes")
             .order_by("ano", "mes")
             .all()
         )
-        return {(int(ano), int(mes)): count for ano, mes, count in resultados}
+
+        return {
+            (int(ano), int(mes)): count
+            for ano, mes, count in resultados
+        }

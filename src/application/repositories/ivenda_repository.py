@@ -24,9 +24,9 @@ class IVendaRepository(ABC):
         pass
 
     @abstractmethod
-    def contagem_por_plano(self, user_id: int) -> dict[str, int]:
+    def contagem_por_plano(self,usuario_ids: int | list[int]) -> dict[str, int]:
         pass
 
     @abstractmethod
-    def contagem_por_mes(self, user_id: int) -> dict[tuple[int, int], int]:
+    def contagem_por_mes(self, usuario_ids: list[int]) -> dict[tuple[int, int], int]:
         pass

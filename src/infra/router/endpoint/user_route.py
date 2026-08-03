@@ -126,8 +126,6 @@ def assign_user_time(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    """Associa um usuário existente a um time (resolve 'usuário não está
-    associado a nenhum time' quando ele foi cadastrado sem time_id)."""
     if current_user["role"] not in ["gerente", "coo"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
 

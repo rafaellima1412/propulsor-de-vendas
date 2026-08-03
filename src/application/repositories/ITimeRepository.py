@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.domain.entities.time_schema import TimeCreate, TimeOut
+from src.infra.database.models.user_model import UserModel
 
 
 class ITimeRepository(ABC):
@@ -22,3 +23,9 @@ class ITimeRepository(ABC):
     def get_by_name(self, name: str) -> TimeOut | None: ...
     @abstractmethod
     async def list_by_user_id(self, user_id: int) -> list[TimeOut]: ...
+    @abstractmethod
+    def get_colaboradores_by_time_ids(self, time_ids: list[int]) -> list[UserModel]:
+        pass
+    @abstractmethod
+    def get_colaboradores_by_time(self, time_id: int) -> list[UserModel]:
+        pass

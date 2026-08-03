@@ -1,5 +1,3 @@
-from typing import Any
-
 from sqlalchemy.orm import Session, joinedload
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
@@ -103,11 +101,35 @@ class CampanhaRepository(ICampanhaRepository):
             times=[time.id for time in db_campanha.times],
         )
 
-    def list_by_time_id(self, time_id: int) -> list[Any] | list[type[CampanhaModel]]:
+    def list_by_time_id(self, time_id: int) -> list[Campaign]:
         if not time_id:
             return []
 
-        return self.db.query(CampanhaModel).join(CampanhaModel.times).filter(TimeModel.id == time_id).all()
+        return self.list_by_time_ids([time_id])
+
+    def list_by_time_ids(self, time_ids: list[int]) -> list[Campaign]:
+        if not time_ids:
+            return []
+
+        campanhas_db = (
+            self.db.query(CampanhaModel).join(CampanhaModel.times).filter(TimeModel.id.in_(time_ids)).distinct().all()
+        )
+        return [
+            Campaign(
+                id=c.id,
+                title=c.title,
+                paragraph=c.paragraph,
+                post_type=c.post_type,
+                url=c.url,
+                image=c.image,
+                folder_url=c.folder_url,
+                qrcode_url=c.qrcode_url,
+                data_criacao=c.data_criacao,
+                usuario_id=c.usuarios[0].id if c.usuarios else None,
+                times=[time.id for time in c.times],
+            )
+            for c in campanhas_db
+        ]
 
     def get_time_by_id(self, time_id: int) -> TimeModel | None:
         return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
