@@ -45,7 +45,6 @@ async def dashboard(
         "campanhas": resultado["campanhas"],
         # "scope": resultado["scope"],
         "dashboard_data": resultado["dashboard_data"],
-        "planos_cores": resultado["planos_cores"],
     }
 
 
@@ -93,8 +92,12 @@ async def update_campaign(
 @inject
 async def create_campaign(
     payload: CampanhaCreateDTO,
+    user: dict = Depends(get_current_user),
     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
 ):
+    if user["role"] != "gerente":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
     if not validar_cpf(payload.cpf_usuario):
         raise HTTPException(status_code=400, detail="CPF inválido!")
 

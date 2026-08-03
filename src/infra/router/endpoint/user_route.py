@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from passlib.context import CryptContext
 from starlette import status
 
-from src.application.auth.auth import authenticate_user, create_access_token, get_current_user
+from src.application.auth.auth import authenticate_user, create_access_token, get_current_user, get_current_user_optional
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.use_cases.user_usecase import UserUseCase
 from src.domain.entities.user_schema import UserOut
@@ -28,8 +28,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 @inject
 def create_user(
     user: UserCreateDTO,
+    current_user: dict = Depends(get_current_user),
     usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado")
     return usecase.create_user(user)
 
 
@@ -41,6 +44,7 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
 
 @router.get("/me")
 def read_current_user(user: dict = Depends(get_current_user)):
+    """Retorna o usuário autenticado. O frontend chama isso ao carregar para saber se há sessão válida."""
     return user
 
 
@@ -48,16 +52,30 @@ def read_current_user(user: dict = Depends(get_current_user)):
 @inject
 def register_user(
     payload: UserRegisterRequest,
+    current_user: dict | None = Depends(get_current_user_optional),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     try:
+        is_first_user = len(user_usecase.list_users()) == 0
+
+        if is_first_user:
+            # Bootstrap: ainda não existe ninguém no sistema, então não há como
+            # exigir login. O primeiro usuário nasce sempre admin, ignorando o
+            # que veio no formulário — senão bastaria ser o primeiro a se
+            # cadastrar como "coordenador" pra furar a regra.
+            role = "admin"
+        elif current_user is None or current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Apenas admin pode cadastrar usuários.")
+        else:
+            role = payload.role
+
         hashed_password = pwd_context.hash(payload.password)
         user_data = UserCreateDTO(
             username=payload.username,
             full_name=payload.full_name,
             cpf=payload.cpf,
             hashed_password=hashed_password,
-            role=payload.role,
+            role=role,
             subordinado_id=payload.subordinado_id,
             time_existente_id=payload.time_existente_id,
             novo_time=payload.novo_time,
@@ -110,7 +128,12 @@ def login(payload: LoginRequest, response: Response):
 
 @router.get("/gerentes", response_model=list[UserOut])
 @inject
-async def api_gerentes(user_usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
+async def api_gerentes(
+    current_user: dict = Depends(get_current_user),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    if current_user["role"] not in ("coordenador", "admin"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
     gerentes = user_usecase.list_by_role("gerente")
     result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
     user_usecase.close()
@@ -125,7 +148,7 @@ def assign_user_time(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] not in ["gerente", "coordenador"]:
+    if current_user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     try:

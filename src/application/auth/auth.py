@@ -61,3 +61,33 @@ def get_current_user(
             raise HTTPException(status_code=401, detail="Token inválido") from e
     finally:
         user_repository.db.close()
+
+
+@inject
+def get_current_user_optional(
+    request: Request, user_repository: IUserRepository = Depends(Provide[Container.user_repository])
+) -> dict | None:
+    """Igual a get_current_user, mas nunca levanta 401 — devolve None quando não
+    há sessão válida, em vez de barrar a requisição. Existe só para rotas que
+    precisam de um caminho de bootstrap sem login (cadastro do primeiro
+    usuário do sistema); todo o resto deve continuar usando get_current_user."""
+    try:
+        token = request.cookies.get("access_token")
+        if not token:
+            return None
+
+        try:
+            payload = jwt.decode(token.split(" ")[1], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            username = payload.get("sub")
+            if username is None:
+                return None
+
+            user = user_repository.get_by_username(username)
+            if not user:
+                return None
+
+            return {"id": user.id, "username": user.username, "role": user.role}
+        except JWTError:
+            return None
+    finally:
+        user_repository.db.close()

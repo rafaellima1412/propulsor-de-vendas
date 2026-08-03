@@ -22,7 +22,6 @@ class DashboardUseCase:
 
             planos_labels = list(vendas_por_plano.keys())
             planos_data = list(vendas_por_plano.values())
-            planos_cores = ["#3498db", "#2ecc71", "#f1c40f", "#e74c3c", "#9b59b6"][: len(planos_labels)]
 
             mes_labels = [f"{calendar.month_abbr[int(mes)].capitalize()}/{int(ano)}" for ano, mes in vendas_por_mes.keys()]
             mes_data = list(vendas_por_mes.values())
@@ -34,14 +33,13 @@ class DashboardUseCase:
                     "area": {
                         "labels": planos_labels,
                         "data": planos_data,
-                        "colors": planos_cores,
                     },
                     "finance": {
                         "labels": mes_labels,
                         "data": mes_data,
                     },
                 },
-                "planos_cores": planos_cores,
+
             }
         if user["role"] == "coordenador": 
                     campanhas = self.campanha_repo.get_all() 
@@ -50,7 +48,6 @@ class DashboardUseCase:
         
                     planos_labels = list(vendas_por_plano.keys())
                     planos_data = list(vendas_por_plano.values())
-                    planos_cores = ["#3498db", "#2ecc71", "#f1c40f", "#e74c3c", "#9b59b6"][: len(planos_labels)]
         
                     mes_labels = [f"{calendar.month_abbr[int(mes)].capitalize()}/{int(ano)}" for ano, mes in vendas_por_mes.keys()]
                     mes_data = list(vendas_por_mes.values())
@@ -62,14 +59,12 @@ class DashboardUseCase:
                             "area": {
                                 "labels": planos_labels,
                                 "data": planos_data,
-                                "colors": planos_cores,
                             },
                             "finance": {
                                 "labels": mes_labels,
                                 "data": mes_data,
                             },
-                        },
-                        "planos_cores": planos_cores,
+                        }
                     }
         if user["role"] == "gerente":
                     times = self.user_repo.get_times_ids_by_gerente(user["id"])
@@ -81,7 +76,6 @@ class DashboardUseCase:
         
                     planos_labels = list(vendas_por_plano.keys())
                     planos_data = list(vendas_por_plano.values())
-                    planos_cores = ["#3498db", "#2ecc71", "#f1c40f", "#e74c3c", "#9b59b6"][: len(planos_labels)]
         
                     mes_labels = [f"{calendar.month_abbr[int(mes)].capitalize()}/{int(ano)}" for ano, mes in vendas_por_mes.keys()]
                     mes_data = list(vendas_por_mes.values())
@@ -93,12 +87,10 @@ class DashboardUseCase:
                             "area": {
                                 "labels": planos_labels,
                                 "data": planos_data,
-                                "colors": planos_cores,
                             },
                             "finance": {
                                 "labels": mes_labels,
                                 "data": mes_data,
                             },
-                        },
-                        "planos_cores": planos_cores,
+                        }
                     }

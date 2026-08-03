@@ -60,7 +60,7 @@ def test_coordenador_nao_usa_metodos_escopados_por_usuario_ou_time(usecase, camp
     user_repo.get_colaboradores_by_gerente.assert_not_called()
 
 
-def test_coordenador_monta_labels_cores_e_dados_do_grafico_de_planos(usecase, campanha_repo, venda_repo):
+def test_coordenador_monta_labels_e_dados_do_grafico_de_planos(usecase, campanha_repo, venda_repo):
     campanha_repo.get_all.return_value = []
     venda_repo.contagem_por_plano_all.return_value = {"1GB": 10, "2GB": 5, "10GB": 2}
     venda_repo.contagem_por_mes_all.return_value = {}
@@ -70,8 +70,8 @@ def test_coordenador_monta_labels_cores_e_dados_do_grafico_de_planos(usecase, ca
 
     assert area["labels"] == ["1GB", "2GB", "10GB"]
     assert area["data"] == [10, 5, 2]
-    assert len(area["colors"]) == 3
-    assert result["planos_cores"] == area["colors"]
+    assert "colors" not in area
+    assert "planos_cores" not in result
 
 
 def test_coordenador_monta_labels_de_mes_formatadas(usecase, campanha_repo, venda_repo):
