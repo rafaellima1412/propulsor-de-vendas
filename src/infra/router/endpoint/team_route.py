@@ -3,6 +3,7 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException
 
+from src.application.auth.auth import get_current_user
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.domain.entities.time_schema import TimeCreate, TimeOut
 from src.infra.dy.container import Container
@@ -10,9 +11,29 @@ from src.infra.dy.container import Container
 router = APIRouter(prefix="/times", tags=["Times"])
 
 
+def require_coordenador(user: dict = Depends(get_current_user)) -> dict:
+    """Criar, editar ou deletar time (o que inclui delegar um time a um
+    gerente) é exclusivo do coordenador."""
+    if user["role"] != "coordenador":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    return user
+
+
+def require_gerente_ou_coordenador(user: dict = Depends(get_current_user)) -> dict:
+    """Ver a listagem de times (mesmo que só leitura) não é pra colaborador
+    — ele não tem motivo pra enxergar a estrutura de times da empresa
+    inteira, só o dele próprio (que já vem via /campanhas/by-usuario).
+    Admin entra aqui também: a tela de cadastro precisa listar times
+    existentes pra montar o formulário de gerente/colaborador."""
+    if user["role"] not in ("gerente", "coordenador", "admin"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    return user
+
+
 @router.get("/list", response_model=list[TimeOut])
 @inject
 async def list_times(
+    user: dict = Depends(require_gerente_ou_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     return time_usecase.list_all()
@@ -22,6 +43,7 @@ async def list_times(
 @inject
 async def get_time(
     time_id: int,
+    user: dict = Depends(require_gerente_ou_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     time = time_usecase.get_time_by_id(time_id)
@@ -34,6 +56,7 @@ async def get_time(
 @inject
 async def create_time(
     data: TimeCreate,
+    user: dict = Depends(require_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     return  time_usecase.create_time(data)
@@ -44,6 +67,7 @@ async def create_time(
 async def update_time(
     time_id: int,
     data: TimeCreate,
+    user: dict = Depends(require_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     return await time_usecase.update_time(time_id, data)
@@ -53,6 +77,7 @@ async def update_time(
 @inject
 async def delete_time(
     time_id: int,
+    user: dict = Depends(require_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     await time_usecase.delete_time(time_id)
@@ -63,6 +88,7 @@ async def delete_time(
 @inject
 async def get_times_by_coo(
     coo_id: int,
+    user: dict = Depends(require_gerente_ou_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     return  time_usecase.get_times_by_coo(coo_id)
@@ -72,6 +98,7 @@ async def get_times_by_coo(
 @inject
 async def get_times_by_gerente(
     gerente_id: int,
+    user: dict = Depends(require_gerente_ou_coordenador),
     time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     return  time_usecase.get_times_by_gerente(gerente_id)

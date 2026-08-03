@@ -179,3 +179,4 @@ media/outputs/
 media/qrcodes/
 *.patch
 .vscode/*
+*.rej
