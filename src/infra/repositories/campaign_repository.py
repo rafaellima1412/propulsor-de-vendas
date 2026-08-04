@@ -101,12 +101,6 @@ class CampanhaRepository(ICampanhaRepository):
             times=[time.id for time in db_campanha.times],
         )
 
-    def list_by_time_id(self, time_id: int) -> list[Campaign]:
-        if not time_id:
-            return []
-
-        return self.list_by_time_ids([time_id])
-
     def list_by_time_ids(self, time_ids: list[int]) -> list[Campaign]:
         if not time_ids:
             return []
@@ -165,9 +159,6 @@ class CampanhaRepository(ICampanhaRepository):
         db_campaign.folder_url = campaign.folder_url
         db_campaign.qrcode_url = campaign.qrcode_url
         db_campaign.image = campaign.image
-
-        # campaign.times já vem resolvido (lista de TimeModel) pelo use case,
-        # a partir dos time_ids explicitamente enviados na requisição.
         db_campaign.times = campaign.times
 
         self.db.commit()

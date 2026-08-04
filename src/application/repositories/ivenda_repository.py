@@ -19,11 +19,6 @@ class IVendaRepository(ABC):
         pass
 
     @abstractmethod
-    def list_vendas_by_usuario_id(self, usuario_id: int) -> list[VendaModel]:
-        """Retorna todas as vendas pertencentes ao usuário."""
-        pass
-
-    @abstractmethod
     def contagem_por_plano(self,usuario_ids: int | list[int]) -> dict[str, int]:
         pass
 

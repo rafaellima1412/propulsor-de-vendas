@@ -3,9 +3,6 @@ from sqlalchemy.orm import Session
 
 from src.application.dtos.venda_create_dto import VendaCreateDTO
 from src.domain.enums.enums import PlanoInternet
-from src.infra.database.models import campanha_time
-from src.infra.database.models.campaign_model import CampanhaModel
-from src.infra.database.models.time_model import TimeModel
 from src.infra.database.models.venda_model import VendaModel
 
 
@@ -25,30 +22,6 @@ class VendaRepository:
 
     def get_by_id(self, venda_id: int):
         return self.db.query(VendaModel).filter(VendaModel.id == venda_id).first()
-
-    def list_by_time_and_campanha(self) -> dict[str, int]:
-        resultados = (
-            self.db.query(
-                TimeModel.id,
-                TimeModel.name,
-                func.count(VendaModel.id).label("total_vendas"),
-            )
-            .join(
-                campanha_time,
-                campanha_time.time_id == TimeModel.id,
-            )
-            .join(
-                VendaModel,
-                VendaModel.campanha_id == campanha_time.campanha_id,
-            )
-            .group_by(TimeModel.id, TimeModel.name)
-            .order_by(TimeModel.name)
-            .all()
-        )
-        return {
-            nome: total
-            for _, nome, total in resultados
-        }
 
     def contagem_por_plano(self, usuario_ids: int | list[int]) -> dict[str, int]:
         if isinstance(usuario_ids, int):

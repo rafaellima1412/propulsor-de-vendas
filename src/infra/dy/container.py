@@ -2,7 +2,6 @@ from dependency_injector import containers, providers
 
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
-from src.application.use_cases.gerente_usecase import GerenteUseCases
 from src.application.use_cases.local_usecase import LocalUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
@@ -10,7 +9,7 @@ from src.application.use_cases.user_usecase import UserUseCase
 from src.application.use_cases.venda_usecase import VendaUseCase
 from src.infra.database.session import SessionLocal
 from src.infra.repositories.campaign_repository import CampanhaRepository
-from src.infra.repositories.gerente_repository import GerenteRepository
+from src.infra.repositories.carteira_financeira import CarteiraFinanceiraRepository
 from src.infra.repositories.local_repository import LocalRepository
 from src.infra.repositories.TimeRepository import TimeRepository
 from src.infra.repositories.user_repository import UserRepository
@@ -45,10 +44,9 @@ class Container(containers.DeclarativeContainer):
     )
 
     campanha_repository = providers.Factory(CampanhaRepository, db=db_session)
-    gerente_repository = providers.Factory(GerenteRepository, db=db_session)
 
     time_repository = providers.Factory(TimeRepository, db_session=db_session)
-    carteira_repository = providers.Factory(TimeRepository, db_session=db_session)
+    carteira_repository = providers.Factory(CarteiraFinanceiraRepository, session=db_session)
     local_repository = providers.Factory(LocalRepository, db=db_session)
 
     user_usecase = providers.Factory(
@@ -72,7 +70,6 @@ class Container(containers.DeclarativeContainer):
         user_repo=user_repository,
     )
 
-    gerente_use_case = providers.Factory(GerenteUseCases, repo=gerente_repository)
     time_usecase = providers.Factory(
         TimeUseCase,
         time_repository=time_repository,
