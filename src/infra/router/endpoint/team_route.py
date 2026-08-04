@@ -12,19 +12,12 @@ router = APIRouter(prefix="/times", tags=["Times"])
 
 
 def require_coordenador(user: dict = Depends(get_current_user)) -> dict:
-    """Criar, editar ou deletar time (o que inclui delegar um time a um
-    gerente) é exclusivo do coordenador."""
     if user["role"] != "coordenador":
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user
 
 
 def require_gerente_ou_coordenador(user: dict = Depends(get_current_user)) -> dict:
-    """Ver a listagem de times (mesmo que só leitura) não é pra colaborador
-    — ele não tem motivo pra enxergar a estrutura de times da empresa
-    inteira, só o dele próprio (que já vem via /campanhas/by-usuario).
-    Admin entra aqui também: a tela de cadastro precisa listar times
-    existentes pra montar o formulário de gerente/colaborador."""
     if user["role"] not in ("gerente", "coordenador", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user

@@ -95,7 +95,7 @@ async def create_campaign(
     user: dict = Depends(get_current_user),
     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
 ):
-    if user["role"] != "gerente":
+    if user["role"] not in ("gerente", "coordenador"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     if not validar_cpf(payload.cpf_usuario):

@@ -44,7 +44,6 @@ def list_users(usecase: UserUseCase = Depends(Provide[Container.user_usecase])):
 
 @router.get("/me")
 def read_current_user(user: dict = Depends(get_current_user)):
-    """Retorna o usuário autenticado. O frontend chama isso ao carregar para saber se há sessão válida."""
     return user
 
 
@@ -57,12 +56,7 @@ def register_user(
 ):
     try:
         is_first_user = len(user_usecase.list_users()) == 0
-
         if is_first_user:
-            # Bootstrap: ainda não existe ninguém no sistema, então não há como
-            # exigir login. O primeiro usuário nasce sempre admin, ignorando o
-            # que veio no formulário — senão bastaria ser o primeiro a se
-            # cadastrar como "coordenador" pra furar a regra.
             role = "admin"
         elif current_user is None or current_user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Apenas admin pode cadastrar usuários.")
