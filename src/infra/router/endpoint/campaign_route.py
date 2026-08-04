@@ -1,14 +1,19 @@
+import mimetypes
+import os
+import uuid
+from pathlib import Path
+
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from PIL import Image
 from starlette import status
 
-from config.settings import OUTPUT_FOLDER
+from config.settings import OUTPUT_FOLDER, UPLOAD_FOLDER
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
-from src.application.services.qr_code_generator import generate_folder_with_qr
-from src.application.services.social_variants import SOCIAL_FORMATS, SocialVariantError, generate_social_variant
+from src.application.services.qr_code_generator import generate_folder_with_qr, resolve_local_media_path
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
@@ -16,9 +21,34 @@ from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseC
 from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
-import os
 
 router = APIRouter(prefix="/campanhas")
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+
+# Dimensões-alvo (px) de cada formato de post. "post" aqui é o formato
+# horizontal genérico (ex: link preview / post de feed paisagem).
+SOCIAL_FORMATS = {
+    "feed": (1080, 1080),
+    "stories": (1080, 1920),
+    "post": (1080, 608),
+}
+
+
+def _fit_cover(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
+    """Redimensiona a imagem pra cobrir totalmente o tamanho alvo (sem
+    distorcer) e corta o excesso centralizado — igual ao `object-fit: cover`
+    do CSS."""
+    target_w, target_h = target_size
+    src_w, src_h = image.size
+    scale = max(target_w / src_w, target_h / src_h)
+    new_w, new_h = round(src_w * scale), round(src_h * scale)
+    resized = image.resize((new_w, new_h), Image.LANCZOS)
+
+    left = (new_w - target_w) // 2
+    top = (new_h - target_h) // 2
+    return resized.crop((left, top, left + target_w, top + target_h))
 
 
 def campaign_to_dict(campaign):
@@ -82,32 +112,49 @@ async def campaign_detail(
 
 @router.get("/{campaign_id}/social/{formato}")
 @inject
-async def campaign_social_variant(
+async def campaign_social_image(
     campaign_id: int,
     formato: str,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
 ):
-    """Recorte da imagem final da campanha pronto pra postar num formato
-    específico (feed quadrado, stories vertical, post horizontal)."""
+    """Gera (e cacheia em disco) uma versão da imagem final da campanha
+    recortada pro formato pedido — pra colaborador postar direto no Feed,
+    Stories ou como post horizontal, sem precisar recortar na mão."""
+    if formato not in SOCIAL_FORMATS:
+        raise HTTPException(status_code=404, detail="Formato inválido. Use feed, stories ou post.")
+
     campaign = campanha_repo.get_by_id(campaign_id)
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-    if user["role"] not in ("colaborador", "gerente", "coordenador"):
+    # Colaborador só pode gerar recortes da própria campanha; gerente e
+    # coordenador podem de qualquer uma (mesma regra do campaign_detail).
+    if user["role"] == "colaborador":
+        if campaign.usuario_id != user["id"]:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+    elif user["role"] not in ("gerente", "coordenador"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     if not campaign.image:
-        raise HTTPException(status_code=404, detail="Essa campanha ainda não tem uma imagem gerada.")
+        raise HTTPException(status_code=404, detail="Essa campanha ainda não tem imagem gerada.")
 
-    image_path = os.path.join(OUTPUT_FOLDER, os.path.basename(campaign.image))
+    source_path = resolve_local_media_path(campaign.image)
+    if source_path is None:
+        raise HTTPException(status_code=404, detail="Imagem da campanha não encontrada em disco.")
 
-    try:
-        variant_path = generate_social_variant(image_path, formato)
-    except SocialVariantError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    cache_dir = Path(OUTPUT_FOLDER) / "social"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"{campaign_id}_{formato}.png"
 
-    return FileResponse(variant_path, media_type="image/png", filename=os.path.basename(variant_path))
+    # Regenera só se ainda não existe ou se a imagem original mudou desde a
+    # última vez (ex: campanha foi editada com uma imagem nova).
+    if not cache_path.exists() or os.path.getmtime(source_path) > os.path.getmtime(cache_path):
+        base_image = Image.open(source_path).convert("RGB")
+        social_image = _fit_cover(base_image, SOCIAL_FORMATS[formato])
+        social_image.save(cache_path)
+
+    return FileResponse(cache_path, media_type="image/png", filename=f"{campaign.title}_{formato}.png")
 
 
 @router.put("/{campaign_id}")
@@ -121,6 +168,36 @@ async def update_campaign(
     campaign = await use_case.execute(user=user, campaign_id=campaign_id, update_dto=update_dto)
 
     return {"message": "Campanha atualizada com sucesso!", "campaign": campaign_to_dict(campaign)}
+
+@router.post("/upload-imagem", status_code=status.HTTP_201_CREATED)
+@inject
+async def upload_imagem_base(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user),
+):
+    """Recebe a imagem base (arte da campanha) escolhida no front, salva em
+    media/uploads e devolve a URL pra ser usada como `folder_image` em
+    POST /campanhas/. Não cria a campanha em si — é um passo separado."""
+    if user["role"] not in ("gerente", "coordenador"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0]
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400, detail="Formato inválido. Envie um arquivo JPEG, PNG ou WEBP."
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="Imagem muito grande (máximo 10MB).")
+
+    extensao = mimetypes.guess_extension(content_type) or Path(file.filename or "").suffix or ".jpg"
+    nome_arquivo = f"{uuid.uuid4().hex}{extensao}"
+    destino = Path(UPLOAD_FOLDER) / nome_arquivo
+    destino.write_bytes(contents)
+
+    return {"url": f"/media/uploads/{nome_arquivo}"}
+
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @inject

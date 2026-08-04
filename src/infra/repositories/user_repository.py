@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
 from src.application.dtos.user_create_dto import UserCreateDTO
@@ -58,3 +59,17 @@ class UserRepository(IUserRepository):
         times = self.db.query(TimeModel).filter(TimeModel.gerente_id == gerente_id).all()
         time_ids = [t.id for t in times]
         return self.db.query(UserModel).filter(UserModel.time_id.in_(time_ids)).all()
+
+    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
+        base = self.db.query(UserModel).filter(UserModel.role == "colaborador")
+
+        if query:
+            termo = f"%{query.strip()}%"
+            base = base.filter(
+                or_(
+                    UserModel.full_name.ilike(termo),
+                    UserModel.cpf.ilike(termo),
+                )
+            )
+
+        return base.order_by(UserModel.full_name).limit(50).all()
