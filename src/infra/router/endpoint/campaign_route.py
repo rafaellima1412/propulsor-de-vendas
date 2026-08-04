@@ -82,6 +82,22 @@ async def dashboard(
     }
 
 
+@router.get("/de-usuario/{usuario_id}")
+@inject
+async def campanhas_de_usuario(
+    usuario_id: int,
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+):
+    """Campanhas de um colaborador específico — usado pra popular o
+    seletor de campanha na tela de simular venda."""
+    if user["role"] not in ("gerente", "coordenador"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    campanhas = campanha_repo.list_by_usuario_id(usuario_id)
+    return [campaign_to_dict(c) for c in campanhas]
+
+
 @router.get("/{campaign_id}")
 @inject
 async def campaign_detail(

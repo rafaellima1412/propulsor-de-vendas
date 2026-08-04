@@ -19,6 +19,13 @@ class IVendaRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_usuario_ids(self, usuario_ids: list[int]) -> list[VendaModel]:
+        """Vendas feitas pelos colaboradores informados — usado pra restringir
+        o gerente às vendas do próprio time (coordenador continua vendo tudo
+        via get_all)."""
+        pass
+
+    @abstractmethod
     def contagem_por_plano(self,usuario_ids: int | list[int]) -> dict[str, int]:
         pass
 
