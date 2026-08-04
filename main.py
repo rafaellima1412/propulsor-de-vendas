@@ -19,6 +19,7 @@ container.wire(
         "src.application.auth.auth",
         "src.infra.router.endpoint.user_route",
         "src.infra.router.endpoint.venda_route",
+        "src.infra.router.endpoint.carteira_route",
         "src.infra.router.endpoint.campaign_route",
         "src.infra.router.endpoint.team_route",
         "src.infra.router.endpoint.local_route",
@@ -44,9 +45,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Backend agora é 100% API. O frontend (React) roda em outra origem, então
-# precisamos liberar CORS explicitamente para ela. Configure FRONTEND_URL
-# no .env (ex: http://localhost:5173 em dev, ou a URL de produção).
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -57,9 +56,7 @@ app.add_middleware(
 
 app.include_router(v1_routers)
 
-# /media serve SOMENTE conteúdo gerado em runtime pela API (crachás, QR codes,
-# uploads) — não é frontend. Assets de UI (css/icons/templates antigos) foram
-# movidos para frontend-reference/ e não são mais servidos pelo backend.
+
 app.mount(
     "/media",
     StaticFiles(directory=os.path.join(BASE_DIR, "media")),

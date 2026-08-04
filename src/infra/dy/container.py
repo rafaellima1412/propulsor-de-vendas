@@ -1,5 +1,6 @@
 from dependency_injector import containers, providers
 
+from src.application.use_cases.carteira_usecases import CarteiraUseCase
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.local_usecase import LocalUseCase
@@ -9,7 +10,6 @@ from src.application.use_cases.user_usecase import UserUseCase
 from src.application.use_cases.venda_usecase import VendaUseCase
 from src.infra.database.session import SessionLocal
 from src.infra.repositories.campaign_repository import CampanhaRepository
-from src.infra.repositories.carteira_financeira import CarteiraFinanceiraRepository
 from src.infra.repositories.local_repository import LocalRepository
 from src.infra.repositories.TimeRepository import TimeRepository
 from src.infra.repositories.user_repository import UserRepository
@@ -21,6 +21,7 @@ class Container(containers.DeclarativeContainer):
         modules=[
             "src.infra.router.endpoint.user_route",
             "src.infra.router.endpoint.venda_route",
+            "src.infra.router.endpoint.carteira_route",
             "src.application.auth.auth",
             "src.infra.router.endpoint.campaign_route",
             "src.infra.router.endpoint.team_route",
@@ -46,7 +47,6 @@ class Container(containers.DeclarativeContainer):
     campanha_repository = providers.Factory(CampanhaRepository, db=db_session)
 
     time_repository = providers.Factory(TimeRepository, db_session=db_session)
-    carteira_repository = providers.Factory(CarteiraFinanceiraRepository, session=db_session)
     local_repository = providers.Factory(LocalRepository, db=db_session)
 
     user_usecase = providers.Factory(
@@ -58,6 +58,12 @@ class Container(containers.DeclarativeContainer):
     venda_usecase = providers.Factory(
         VendaUseCase,
         repository=venda_repository,
+    )
+
+    carteira_usecase = providers.Factory(
+        CarteiraUseCase,
+        venda_repo=venda_repository,
+        campanha_repo=campanha_repository,
     )
 
     create_campaign_use_case = providers.Factory(

@@ -4,6 +4,18 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from src.infra.database.base import Base
+
+# Precisa importar os models explicitamente ANTES de capturar
+# target_metadata — sem isso, Base.metadata fica vazio (nenhuma classe
+# registrada ainda) e o autogenerate não enxerga nenhuma tabela existente,
+# o que faz o Alembic gerar uma migração tentando DROPAR tudo. Mesma lista
+# de imports que init_db.py usa.
+from src.infra.database.models.campaign_model import CampanhaModel  # noqa: F401
+from src.infra.database.models.campanha_time import campanha_time  # noqa: F401
+from src.infra.database.models.local_model import Local  # noqa: F401
+from src.infra.database.models.time_model import TimeModel  # noqa: F401
+from src.infra.database.models.user_campaign import user_campanha  # noqa: F401
+from src.infra.database.models.venda_model import VendaModel  # noqa: F401
 from src.infra.settings.settings import settings
 
 # this is the Alembic Config object, which provides
