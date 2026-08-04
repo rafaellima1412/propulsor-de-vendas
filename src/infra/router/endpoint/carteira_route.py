@@ -2,7 +2,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.application.auth.auth import get_current_user
-from src.application.use_cases.carteira_usecases import CarteiraUseCase
+from src.application.use_cases.carteira_usecase import CarteiraUseCase
 from src.domain.entities.carteira_schema import CarteiraOut
 from src.infra.dy.container import Container
 

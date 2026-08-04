@@ -1,6 +1,6 @@
 from dependency_injector import containers, providers
 
-from src.application.use_cases.carteira_usecases import CarteiraUseCase
+from src.application.use_cases.carteira_usecase import CarteiraUseCase
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.local_usecase import LocalUseCase
