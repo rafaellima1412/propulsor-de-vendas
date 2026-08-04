@@ -13,6 +13,9 @@ class VendaUseCase:
     def list_vendas(self) -> list[VendaModel]:
         return self.repository.get_all()
 
+    def list_vendas_by_usuario_ids(self, usuario_ids: list[int]) -> list[VendaModel]:
+        return self.repository.get_by_usuario_ids(usuario_ids)
+
     def get_venda(self, venda_id: int) -> VendaModel | None:
         return self.repository.get_by_id(venda_id)
 

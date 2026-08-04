@@ -1,5 +1,5 @@
 from sqlalchemy import extract, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.application.dtos.venda_create_dto import VendaCreateDTO
 from src.domain.enums.enums import PlanoInternet
@@ -15,10 +15,33 @@ class VendaRepository:
         self.db.add(db_venda)
         self.db.commit()
         self.db.refresh(db_venda)
-        return db_venda
+        # Recarrega com os relacionamentos já prontos, pra devolver via
+        # VendaOut sem precisar de uma query extra.
+        return (
+            self.db.query(VendaModel)
+            .options(joinedload(VendaModel.usuario), joinedload(VendaModel.campanha))
+            .filter(VendaModel.id == db_venda.id)
+            .first()
+        )
 
     def get_all(self):
-        return self.db.query(VendaModel).all()
+        return (
+            self.db.query(VendaModel)
+            .options(joinedload(VendaModel.usuario), joinedload(VendaModel.campanha))
+            .order_by(VendaModel.data_criacao.desc())
+            .all()
+        )
+
+    def get_by_usuario_ids(self, usuario_ids: list[int]) -> list[VendaModel]:
+        if not usuario_ids:
+            return []
+        return (
+            self.db.query(VendaModel)
+            .options(joinedload(VendaModel.usuario), joinedload(VendaModel.campanha))
+            .filter(VendaModel.usuario_id.in_(usuario_ids))
+            .order_by(VendaModel.data_criacao.desc())
+            .all()
+        )
 
     def get_by_id(self, venda_id: int):
         return self.db.query(VendaModel).filter(VendaModel.id == venda_id).first()

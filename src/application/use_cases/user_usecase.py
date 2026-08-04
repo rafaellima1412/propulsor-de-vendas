@@ -90,6 +90,9 @@ class UserUseCase:
     def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
         return self.user_repo.search_colaboradores(query)
 
+    def list_colaboradores_by_gerente(self, gerente_id: int) -> list[UserModel]:
+        return self.user_repo.get_colaboradores_by_gerente(gerente_id)
+
     def list_all_times(self):
         return self.time_repo.list_all()
 
