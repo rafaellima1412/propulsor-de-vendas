@@ -1,11 +1,14 @@
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from starlette import status
 
+from config.settings import OUTPUT_FOLDER
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.services.qr_code_generator import generate_folder_with_qr
+from src.application.services.social_variants import SOCIAL_FORMATS, SocialVariantError, generate_social_variant
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
@@ -13,6 +16,7 @@ from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseC
 from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
+import os
 
 router = APIRouter(prefix="/campanhas")
 
@@ -75,6 +79,36 @@ async def campaign_detail(
         "times": user_times,
         "editable": user["role"] != "colaborador",
     }
+
+@router.get("/{campaign_id}/social/{formato}")
+@inject
+async def campaign_social_variant(
+    campaign_id: int,
+    formato: str,
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+):
+    """Recorte da imagem final da campanha pronto pra postar num formato
+    específico (feed quadrado, stories vertical, post horizontal)."""
+    campaign = campanha_repo.get_by_id(campaign_id)
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+
+    if user["role"] not in ("colaborador", "gerente", "coordenador"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    if not campaign.image:
+        raise HTTPException(status_code=404, detail="Essa campanha ainda não tem uma imagem gerada.")
+
+    image_path = os.path.join(OUTPUT_FOLDER, os.path.basename(campaign.image))
+
+    try:
+        variant_path = generate_social_variant(image_path, formato)
+    except SocialVariantError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return FileResponse(variant_path, media_type="image/png", filename=os.path.basename(variant_path))
+
 
 @router.put("/{campaign_id}")
 @inject
