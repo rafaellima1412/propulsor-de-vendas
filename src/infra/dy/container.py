@@ -29,9 +29,6 @@ class Container(containers.DeclarativeContainer):
         ]
     )
 
-    # Each resolution gets its own Session (see session.py for why this
-    # can't safely be a shared/request-scoped Session in this stack).
-    # Repositories close their session right after committing.
     db_session = providers.Factory(SessionLocal)
 
     user_repository = providers.Factory(
@@ -64,6 +61,7 @@ class Container(containers.DeclarativeContainer):
         CarteiraUseCase,
         venda_repo=venda_repository,
         campanha_repo=campanha_repository,
+        user_repo=user_repository,
     )
 
     create_campaign_use_case = providers.Factory(
