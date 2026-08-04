@@ -5,7 +5,7 @@ import httpx
 import qrcode
 from PIL import Image
 
-from config.settings import OUTPUT_FOLDER, QR_FOLDER
+from config.settings import BASE_DIR, MEDIA_ROOT, OUTPUT_FOLDER, QR_FOLDER
 
 
 def generate_qr_code(cpf: str, matricula: str) -> str:
@@ -22,8 +22,35 @@ def generate_qr_code(cpf: str, matricula: str) -> str:
     return file_path
 
 
+def resolve_local_media_path(folder_image: str) -> str | None:
+    """Se `folder_image` for um caminho servido pelo próprio backend em
+    /media (ex: resultado de POST /campanhas/upload-imagem), resolve pro
+    caminho real em disco. Retorna None se não for um caminho local — nesse
+    caso o chamador deve baixar via HTTP normalmente."""
+    parsed = urlparse(folder_image)
+    if parsed.netloc:
+        # É uma URL absoluta (http://... ou https://...); só tratamos como
+        # "local" se apontar pro próprio host de mídia — por simplicidade e
+        # segurança, exigimos caminho relativo (ex: "/media/uploads/x.png").
+        return None
+
+    if not parsed.path.startswith("/media/"):
+        return None
+
+    relative_path = parsed.path.removeprefix("/media/")
+    local_path = os.path.join(BASE_DIR, MEDIA_ROOT, relative_path)
+
+    # Evita path traversal (ex: folder_image="/media/../../etc/passwd").
+    media_root_abs = os.path.abspath(os.path.join(BASE_DIR, MEDIA_ROOT))
+    local_path_abs = os.path.abspath(local_path)
+    if not local_path_abs.startswith(media_root_abs + os.sep):
+        return None
+
+    return local_path_abs if os.path.isfile(local_path_abs) else None
+
+
 async def _download_image(image_url: str, destination_dir: str, fallback_name: str) -> str:
-    """Baixa a imagem informada pelo front (URL) e salva localmente.
+    """Baixa a imagem informada pelo front (URL externa) e salva localmente.
 
     Retorna o caminho do arquivo salvo em disco.
     """
@@ -44,21 +71,29 @@ async def _download_image(image_url: str, destination_dir: str, fallback_name: s
 
 
 async def generate_folder_with_qr(cpf: str, matricula: str, folder_image: str) -> str:
-    """Baixa a imagem (folder_image é uma URL enviada pelo front), cola o QR
-    code gerado a partir do cpf/matrícula por cima dela, e salva o resultado.
+    """Resolve a imagem base (folder_image), cola o QR code gerado a partir
+    do cpf/matrícula por cima dela, e salva o resultado.
+
+    `folder_image` pode ser:
+    - um caminho local já servido pelo backend (ex: "/media/uploads/x.png",
+      devolvido por POST /campanhas/upload-imagem) — lido direto do disco;
+    - uma URL externa de verdade — baixada via HTTP (fluxo antigo, mantido
+      por compatibilidade).
     """
     qr_path = generate_qr_code(cpf, matricula)
 
-    folder_path = await _download_image(
-        folder_image,
-        destination_dir=OUTPUT_FOLDER,
-        fallback_name=f"folder_{cpf}_{matricula}.png",
-    )
+    folder_path = resolve_local_media_path(folder_image)
+    if folder_path is None:
+        folder_path = await _download_image(
+            folder_image,
+            destination_dir=OUTPUT_FOLDER,
+            fallback_name=f"folder_{cpf}_{matricula}.png",
+        )
 
     try:
         base_image = Image.open(folder_path).convert("RGB")
     except Exception as exc:
-        raise ValueError("O arquivo baixado em folder_image não é uma imagem válida.") from exc
+        raise ValueError("O arquivo em folder_image não é uma imagem válida.") from exc
 
     qr_image = Image.open(qr_path).resize((150, 150))
 

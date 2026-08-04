@@ -40,4 +40,6 @@ class IUserRepository(ABC):
     @abstractmethod
     def get_colaboradores_by_gerente(self, gerente_id: int) -> list[UserModel]:
         pass
-    
+    @abstractmethod
+    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
+        pass
