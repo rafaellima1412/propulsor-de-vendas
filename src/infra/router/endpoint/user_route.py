@@ -6,6 +6,11 @@ from passlib.context import CryptContext
 from starlette import status
 
 from src.application.auth.auth import authenticate_user, create_access_token, get_current_user, get_current_user_optional
+from src.application.auth.permissions import (
+    require_admin,
+    require_coordenador_ou_admin,
+    require_gerente,
+)
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.use_cases.user_usecase import UserUseCase
 from src.domain.entities.user_schema import UserOut
@@ -28,11 +33,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 @inject
 def create_user(
     user: UserCreateDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Acesso negado")
     return usecase.create_user(user)
 
 
@@ -123,11 +126,9 @@ def login(payload: LoginRequest, response: Response):
 @router.get("/gerentes", response_model=list[UserOut])
 @inject
 async def api_gerentes(
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_coordenador_ou_admin),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] not in ("coordenador", "admin"):
-        raise HTTPException(status_code=403, detail="Acesso negado")
     gerentes = user_usecase.list_by_role("gerente")
     result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
     user_usecase.close()
@@ -139,15 +140,12 @@ async def api_gerentes(
 def assign_user_time(
     user_id: int,
     payload: AssignTimeRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_gerente),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] != "gerente":
-        raise HTTPException(status_code=403, detail="Acesso negado")
-
     try:
         user = user_usecase.assign_time(user_id, payload.time_id)
-        
+
         return {
             "id": user.id,
             "username": user.username,
