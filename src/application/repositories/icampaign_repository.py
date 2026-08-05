@@ -35,3 +35,7 @@ class ICampanhaRepository(ABC):
     @abstractmethod
     def get_all(self) -> list[Campaign]:
         pass
+
+    @abstractmethod
+    def adicionar_colaborador(self, campanha_id: int, usuario_id: int) -> Campaign | None:
+        pass

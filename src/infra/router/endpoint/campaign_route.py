@@ -18,9 +18,11 @@ from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseC
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
+from src.application.use_cases.user_usecase import UserUseCase
 from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
+from src.infra.router.schemas.campanha_requests import AssociarColaboradorRequest
 
 router = APIRouter(prefix="/campanhas")
 
@@ -96,6 +98,86 @@ async def campanhas_de_usuario(
 
     campanhas = campanha_repo.list_by_usuario_id(usuario_id)
     return [campaign_to_dict(c) for c in campanhas]
+
+
+@router.get("/do-time")
+@inject
+async def campanhas_do_time(
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    """Campanhas do time do usuário logado. Gerente vê o time que gerencia
+    (pode ter mais de um); colaborador vê o time em que está."""
+    if user["role"] == "gerente":
+        time_ids = user_usecase.list_times_by_gerente(user["id"])
+        user_usecase.close()
+    elif user["role"] == "colaborador":
+        colaborador = user_usecase.get_user(user["id"])
+        time_ids = [colaborador.time_id] if colaborador and colaborador.time_id else []
+        user_usecase.close()
+    else:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    campanhas = campanha_repo.list_by_time_ids(time_ids)
+    return [campaign_to_dict(c) for c in campanhas]
+
+
+@router.get("/de-gerente/{gerente_id}")
+@inject
+async def campanhas_de_gerente(
+    gerente_id: int,
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    """Campanhas do time de um gerente específico — visão do coordenador."""
+    if user["role"] != "coordenador":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    time_ids = user_usecase.list_times_by_gerente(gerente_id)
+    user_usecase.close()
+
+    campanhas = campanha_repo.list_by_time_ids(time_ids)
+    return [campaign_to_dict(c) for c in campanhas]
+
+
+@router.post("/{campanha_id}/colaboradores", status_code=status.HTTP_201_CREATED)
+@inject
+async def associar_colaborador(
+    campanha_id: int,
+    payload: AssociarColaboradorRequest,
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    """Associa um colaborador a uma campanha já existente (além de quem já
+    estava). Gerente só pode associar colaboradores do próprio time (ou
+    ainda sem time); coordenador pode associar qualquer um."""
+    if user["role"] not in ("gerente", "coordenador"):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    colaborador = user_usecase.get_user(payload.usuario_id)
+    if not colaborador or colaborador.role != "colaborador":
+        user_usecase.close()
+        raise HTTPException(status_code=400, detail="Colaborador não encontrado.")
+
+    if user["role"] == "gerente":
+        time_ids_gerente = user_usecase.list_times_by_gerente(user["id"])
+        if colaborador.time_id is not None and colaborador.time_id not in time_ids_gerente:
+            user_usecase.close()
+            raise HTTPException(status_code=403, detail="Esse colaborador não é do seu time.")
+    user_usecase.close()
+
+    try:
+        campanha = campanha_repo.adicionar_colaborador(campanha_id, payload.usuario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not campanha:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+
+    return campanha
 
 
 @router.get("/{campaign_id}")
