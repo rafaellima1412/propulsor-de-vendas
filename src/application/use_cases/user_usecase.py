@@ -87,11 +87,14 @@ class UserUseCase:
     def list_gerentes_by_coo(self, coo_id: int) -> list[UserModel]:
         return self.user_repo.get_gerentes_by_coo(coo_id)
 
-    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
-        return self.user_repo.search_colaboradores(query)
+    def search_colaboradores(self, query: str | None = None, time_ids: list[int] | None = None) -> list[UserModel]:
+        return self.user_repo.search_colaboradores(query, time_ids)
 
     def list_colaboradores_by_gerente(self, gerente_id: int) -> list[UserModel]:
         return self.user_repo.get_colaboradores_by_gerente(gerente_id)
+
+    def list_times_by_gerente(self, gerente_id: int) -> list[int]:
+        return self.user_repo.get_times_ids_by_gerente(gerente_id)
 
     def list_all_times(self):
         return self.time_repo.list_all()
@@ -102,6 +105,7 @@ class UserUseCase:
             raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
         time = self.time_repo.get_by_id(time_id)
+        self.time_repo.db.close()
         if not time:
             raise HTTPException(status_code=404, detail="Time não encontrado.")
 

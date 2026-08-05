@@ -65,7 +65,7 @@ class CampanhaRepository(ICampanhaRepository):
             .options(joinedload(CampanhaModel.usuarios))
             .all()
         )
-        return [
+        campanhas = [
             Campaign(
                 id=c.id,
                 title=c.title,
@@ -81,13 +81,16 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
+        self.db.close()
+        return campanhas
 
     def get_by_id(self, campanha_id: int) -> Campaign | None:
         db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
+            self.db.close()
             return None
 
-        return Campaign(
+        campaign = Campaign(
             id=db_campanha.id,
             title=db_campanha.title,
             paragraph=db_campanha.paragraph,
@@ -100,6 +103,8 @@ class CampanhaRepository(ICampanhaRepository):
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
             times=[time.id for time in db_campanha.times],
         )
+        self.db.close()
+        return campaign
 
     def list_by_time_ids(self, time_ids: list[int]) -> list[Campaign]:
         if not time_ids:
@@ -108,7 +113,7 @@ class CampanhaRepository(ICampanhaRepository):
         campanhas_db = (
             self.db.query(CampanhaModel).join(CampanhaModel.times).filter(TimeModel.id.in_(time_ids)).distinct().all()
         )
-        return [
+        campanhas = [
             Campaign(
                 id=c.id,
                 title=c.title,
@@ -124,13 +129,20 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
+        self.db.close()
+        return campanhas
 
     def get_time_by_id(self, time_id: int) -> TimeModel | None:
+        # ATENÇÃO: não fechar a sessão aqui. O objeto TimeModel retornado é
+        # atribuído depois a um relacionamento vivo do SQLAlchemy dentro de
+        # UpdateCampaignUseCase (db_campaign.times = ...) e só é persistido
+        # quando update() roda em seguida, na MESMA sessão. Fechar aqui
+        # quebraria esse fluxo.
         return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
 
     def get_all(self) -> list[Campaign]:
         campanhas_db = self.db.query(CampanhaModel).options(joinedload(CampanhaModel.usuarios)).all()
-        return [
+        campanhas = [
             Campaign(
                 id=c.id,
                 title=c.title,
@@ -146,6 +158,41 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
+        self.db.close()
+        return campanhas
+
+    def adicionar_colaborador(self, campanha_id: int, usuario_id: int) -> Campaign | None:
+        db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
+        if not db_campanha:
+            self.db.close()
+            return None
+
+        usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
+        if not usuario:
+            self.db.close()
+            raise ValueError("Usuário não encontrado.")
+
+        ja_associado = any(u.id == usuario_id for u in db_campanha.usuarios)
+        if not ja_associado:
+            db_campanha.usuarios.append(usuario)
+            self.db.commit()
+            self.db.refresh(db_campanha)
+
+        campaign = Campaign(
+            id=db_campanha.id,
+            title=db_campanha.title,
+            paragraph=db_campanha.paragraph,
+            post_type=db_campanha.post_type,
+            url=db_campanha.url,
+            image=db_campanha.image,
+            folder_url=db_campanha.folder_url,
+            qrcode_url=db_campanha.qrcode_url,
+            data_criacao=db_campanha.data_criacao,
+            usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
+            times=[time.id for time in db_campanha.times],
+        )
+        self.db.close()
+        return campaign
 
     def update(self, campaign: Campaign) -> Campaign:
         db_campaign = self.db.query(CampanhaModel).get(campaign.id)

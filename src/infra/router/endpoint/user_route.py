@@ -144,7 +144,13 @@ async def search_colaboradores(
     if current_user["role"] not in ("gerente", "coordenador", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    colaboradores = user_usecase.search_colaboradores(q)
+    # Gerente só pode ver/associar colaboradores que ainda não têm time ou
+    # que já são do próprio time — coordenador/admin veem todo mundo.
+    time_ids = None
+    if current_user["role"] == "gerente":
+        time_ids = user_usecase.list_times_by_gerente(current_user["id"])
+
+    colaboradores = user_usecase.search_colaboradores(q, time_ids)
     result = [UserOut.model_validate(u, from_attributes=True) for u in colaboradores]
     user_usecase.close()
     return result
