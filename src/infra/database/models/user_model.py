@@ -12,6 +12,7 @@ class UserModel(Base):
     full_name = Column(String)
     role = Column(String)
     cpf = Column(String(14), unique=True)
+    matricula = Column(String, nullable=True)  # dado fixo do colaborador — usada pra gerar o QR code na hora do compartilhamento
     hashed_password = Column(String)
 
     is_active = Column(Boolean, nullable=False, default=True)

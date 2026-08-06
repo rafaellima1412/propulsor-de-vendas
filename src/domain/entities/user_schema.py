@@ -8,6 +8,7 @@ class UserBase(BaseModel):
     username: str
     full_name: str  # "gerente", "coordenador", "colaborador"
     cpf: constr(min_length=11, max_length=14)
+    matricula: str | None = None
 
 
 class UserCreate(UserBase):

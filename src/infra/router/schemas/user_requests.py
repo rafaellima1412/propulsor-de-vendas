@@ -8,6 +8,7 @@ class UserRegisterRequest(BaseModel):
     username: str
     full_name: str
     cpf: constr(min_length=11, max_length=14)
+    matricula: str | None = None
     password: str
     role: str
     subordinado_id: int | None = None

@@ -68,6 +68,7 @@ def register_user(
             username=payload.username,
             full_name=payload.full_name,
             cpf=payload.cpf,
+            matricula=payload.matricula,
             hashed_password=hashed_password,
             role=role,
             subordinado_id=payload.subordinado_id,

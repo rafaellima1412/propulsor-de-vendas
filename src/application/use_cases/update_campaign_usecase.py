@@ -3,7 +3,6 @@ from fastapi import HTTPException
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.repositories.icampaign_repository import ICampanhaRepository
 from src.application.repositories.iuser_repository import IUserRepository
-from src.application.services.qr_code_generator import generate_folder_with_qr
 from src.domain.entities.campaign import Campaign
 
 
@@ -34,26 +33,10 @@ class UpdateCampaignUseCase:
         campaign.qrcode_url = update_dto.qrcode_url
 
         if update_dto.folder_image:
-            if not update_dto.matricula:
-                raise HTTPException(
-                    status_code=400, detail="matricula é obrigatória para regenerar a imagem com o QR code."
-                )
-
-            usuario = self._user_repo.get_by_id(campaign.usuario_id) if campaign.usuario_id else None
-            if not usuario:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Não foi possível localizar o usuário da campanha para gerar a imagem.",
-                )
-
-            try:
-                output_filename = await generate_folder_with_qr(
-                    usuario.cpf, update_dto.matricula, update_dto.folder_image
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e)) from e
-
-            campaign.image = f"/media/outputs/{output_filename}"
+            # O QR code não é colado aqui — a imagem enviada substitui a
+            # atual como está, sem alteração. O QR só entra na hora do
+            # compartilhamento (ver /{campaign_id}/social/{formato}).
+            campaign.image = update_dto.folder_image
 
         if not update_dto.time_ids:
             raise HTTPException(status_code=400, detail="A campanha precisa ter pelo menos um time.")

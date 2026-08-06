@@ -1,3 +1,5 @@
+from sqlalchemy import text
+
 from src.infra.database.base import Base
 from src.infra.database.models.campaign_model import CampanhaModel  # noqa: F401
 from src.infra.database.models.campanha_time import campanha_time  # noqa: F401
@@ -11,5 +13,7 @@ from src.infra.database.session import engine
 
 
 def init_db():
-    # print("Tabelas conhecidas:", Base.metadata.tables.keys())
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+
     Base.metadata.create_all(bind=engine)

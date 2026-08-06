@@ -16,6 +16,7 @@ class UserRepository(IUserRepository):
             username=user.username.strip(),
             full_name=user.full_name.strip(),
             cpf=user.cpf,
+            matricula=user.matricula,
             role=user.role,
             hashed_password=user.hashed_password,
         )
@@ -43,12 +44,6 @@ class UserRepository(IUserRepository):
         return resultado
 
     def get_by_id(self, user_id: int) -> UserModel | None:
-        # ATENÇÃO: não fechar a sessão aqui. assign_time() busca o usuário,
-        # muda o time_id e chama update() em seguida NO MESMO objeto —
-        # update() faz self.db.refresh(user), que exige uma sessão ativa.
-        # Fechar aqui quebra esse fluxo com DetachedInstanceError (testado).
-        # Quem usa get_by_id sem chamar update() depois deve fechar a
-        # própria sessão manualmente (ver os outros call sites).
         return self.db.query(UserModel).filter(UserModel.id == user_id).first()
 
     def get_by_cpf(self, cpf: str) -> UserModel | None:
@@ -57,13 +52,7 @@ class UserRepository(IUserRepository):
         return resultado
 
     def get_by_role(self, role: str) -> list[UserModel]:
-        # ATENÇÃO: não fechar a sessão aqui. Quem chama isso (rotas /gerentes
-        # e usos futuros parecidos) serializa o resultado via UserOut logo em
-        # seguida, o que pode disparar lazy-load em campanha.times (só
-        # campanhas em si vêm eager-loaded, o nível de baixo não) — fechar
-        # cedo quebraria isso. O chamador é responsável por fechar depois de
-        # terminar de usar (ver user_usecase.close() nas rotas que usam isso).
-        return self.db.query(UserModel).options(selectinload(UserModel.campanhas)).filter(UserModel.role == role).all()
+       return self.db.query(UserModel).options(selectinload(UserModel.campanhas)).filter(UserModel.role == role).all()
 
     def get_gerentes_by_coo(self, coo_id: int) -> list[UserModel]:
         times = self.db.query(TimeModel).filter(TimeModel.coo_id == coo_id).all()

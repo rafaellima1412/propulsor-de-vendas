@@ -9,6 +9,7 @@ class Campaign(BaseModel):
     paragraph: str
     image: str | None = None
     usuario_id: int | None = None
+    usuario_ids: list[int] = []
     times: list[int] | None = []
     post_type: str | None = None
     url: str | None = None
@@ -22,10 +23,6 @@ class Campaign(BaseModel):
     @field_validator("times", mode="before")
     @classmethod
     def _normalize_times(cls, value):
-        """Aceita tanto list[int] (já convertido manualmente pelos
-        repositórios) quanto list[TimeModel] (quando o Pydantic serializa
-        direto a partir do relationship do SQLAlchemy, como em
-        UserOut.model_validate)."""
         if not value:
             return value
         return [item.id if hasattr(item, "id") else item for item in value]

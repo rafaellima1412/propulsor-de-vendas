@@ -52,6 +52,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=usuario_id,
+            usuario_ids=[u.id for u in db_campanha.usuarios],
             times=[time.id for time in db_campanha.times],
         )
         self.db.close()
@@ -77,6 +78,7 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=usuario_id,
+                usuario_ids=[u.id for u in c.usuarios],
                 times=[time.id for time in c.times],
             )
             for c in campanhas_db
@@ -101,6 +103,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
+            usuario_ids=[u.id for u in db_campanha.usuarios],
             times=[time.id for time in db_campanha.times],
         )
         self.db.close()
@@ -125,6 +128,7 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
+                usuario_ids=[u.id for u in c.usuarios],
                 times=[time.id for time in c.times],
             )
             for c in campanhas_db
@@ -154,6 +158,7 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
+                usuario_ids=[u.id for u in c.usuarios],
                 times=[time.id for time in c.times],
             )
             for c in campanhas_db
@@ -189,6 +194,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
+            usuario_ids=[u.id for u in db_campanha.usuarios],
             times=[time.id for time in db_campanha.times],
         )
         self.db.close()
@@ -222,6 +228,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campaign.qrcode_url,
             data_criacao=db_campaign.data_criacao,
             usuario_id=db_campaign.usuarios[0].id if db_campaign.usuarios else None,
+            usuario_ids=[u.id for u in db_campaign.usuarios],
             times=[time.id for time in db_campaign.times],
         )
         self.db.close()

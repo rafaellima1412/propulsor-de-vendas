@@ -1,19 +1,19 @@
 import mimetypes
-import os
 import uuid
+from io import BytesIO
 from pathlib import Path
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from PIL import Image
 from starlette import status
 
-from config.settings import OUTPUT_FOLDER, UPLOAD_FOLDER
+from config.settings import UPLOAD_FOLDER
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
-from src.application.services.qr_code_generator import generate_folder_with_qr, resolve_local_media_path
+from src.application.services.qr_code_generator import generate_qr_code, resolve_local_media_path
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
@@ -64,6 +64,7 @@ def campaign_to_dict(campaign):
         "folder_url": campaign.folder_url,
         "qrcode_url": campaign.qrcode_url,
         "usuario_id": campaign.usuario_id,
+        "usuario_ids": campaign.usuario_ids,
         "data_criacao": campaign.data_criacao.strftime("%Y-%m-%d %H:%M:%S") if campaign.data_criacao else None,
     }
 
@@ -215,10 +216,13 @@ async def campaign_social_image(
     formato: str,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    """Gera (e cacheia em disco) uma versão da imagem final da campanha
-    recortada pro formato pedido — pra colaborador postar direto no Feed,
-    Stories ou como post horizontal, sem precisar recortar na mão."""
+    """Gera a imagem da campanha recortada pro formato pedido, com o QR
+    code (CPF + matrícula do colaborador que está compartilhando) colado
+    na hora — pra colaborador postar direto no Feed, Stories ou como post
+    horizontal. O QR não existe antes disso: cada colaborador associado à
+    campanha pode postar com o próprio QR."""
     if formato not in SOCIAL_FORMATS:
         raise HTTPException(status_code=404, detail="Formato inválido. Use feed, stories ou post.")
 
@@ -226,33 +230,57 @@ async def campaign_social_image(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-    # Colaborador só pode gerar recortes da própria campanha; gerente e
-    # coordenador podem de qualquer uma (mesma regra do campaign_detail).
+    # Colaborador só pode gerar o próprio QR, e só se estiver de fato
+    # associado à campanha (pode ter mais de um colaborador associado).
+    # Gerente/coordenador podem pré-visualizar com o colaborador "principal".
     if user["role"] == "colaborador":
-        if campaign.usuario_id != user["id"]:
+        if user["id"] not in campaign.usuario_ids:
             raise HTTPException(status_code=403, detail="Acesso negado")
-    elif user["role"] not in ("gerente", "coordenador"):
+        target_usuario_id = user["id"]
+    elif user["role"] in ("gerente", "coordenador"):
+        target_usuario_id = campaign.usuario_id
+    else:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
+    if target_usuario_id is None:
+        raise HTTPException(status_code=400, detail="Essa campanha ainda não tem nenhum colaborador associado.")
+
     if not campaign.image:
-        raise HTTPException(status_code=404, detail="Essa campanha ainda não tem imagem gerada.")
+        raise HTTPException(status_code=404, detail="Essa campanha ainda não tem imagem cadastrada.")
 
     source_path = resolve_local_media_path(campaign.image)
     if source_path is None:
         raise HTTPException(status_code=404, detail="Imagem da campanha não encontrada em disco.")
 
-    cache_dir = Path(OUTPUT_FOLDER) / "social"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = cache_dir / f"{campaign_id}_{formato}.png"
+    colaborador = user_usecase.get_user(target_usuario_id)
+    user_usecase.close()
+    if not colaborador:
+        raise HTTPException(status_code=400, detail="Colaborador da campanha não encontrado.")
 
-    # Regenera só se ainda não existe ou se a imagem original mudou desde a
-    # última vez (ex: campanha foi editada com uma imagem nova).
-    if not cache_path.exists() or os.path.getmtime(source_path) > os.path.getmtime(cache_path):
-        base_image = Image.open(source_path).convert("RGB")
-        social_image = _fit_cover(base_image, SOCIAL_FORMATS[formato])
-        social_image.save(cache_path)
+    if not colaborador.matricula:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{colaborador.full_name} não tem matrícula cadastrada — não é possível gerar o QR code.",
+        )
 
-    return FileResponse(cache_path, media_type="image/png", filename=f"{campaign.title}_{formato}.png")
+    base_image = Image.open(source_path).convert("RGB")
+    social_image = _fit_cover(base_image, SOCIAL_FORMATS[formato])
+
+    qr_path = generate_qr_code(colaborador.cpf, colaborador.matricula)
+    qr_image = Image.open(qr_path).resize((150, 150))
+    posicao = (social_image.width - qr_image.width - 20, social_image.height - qr_image.height - 20)
+    social_image.paste(qr_image, posicao)
+
+    buffer = BytesIO()
+    social_image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    filename = f"{campaign.title}_{formato}.png"
+    return Response(
+        content=buffer.getvalue(),
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.put("/{campaign_id}")
@@ -311,10 +339,7 @@ async def create_campaign(
         raise HTTPException(status_code=400, detail="CPF inválido!")
 
     try:
-        output_filename = await generate_folder_with_qr(payload.cpf_usuario, payload.matricula, payload.folder_image)
-        output_url = f"/media/outputs/{output_filename}"
-
-        dto = payload.model_copy(update={"image": output_url})
+        dto = payload.model_copy(update={"image": payload.folder_image})
         campaign = use_case.execute(dto)
         return {"message": "Campanha criada com sucesso!", "campaign": campaign_to_dict(campaign)}
 
