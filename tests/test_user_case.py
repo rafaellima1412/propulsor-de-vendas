@@ -72,14 +72,15 @@ def test_create_colaborador_without_time_is_allowed(usecase, user_repo):
     user_repo.update.assert_not_called()
 
 
-def test_create_gerente_without_team_info_raises(usecase, user_repo):
-    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coordenador")
+def test_create_coordenador_without_team_info_is_allowed(usecase, user_repo):
+    created_user = UserModel(id=1, username="ana.silva", role="coordenador")
+    user_repo.create.return_value = created_user
 
-    with pytest.raises(HTTPException) as exc_info:
-        usecase.create_user(make_dto(role="coordenador"))
+    result = usecase.create_user(make_dto(role="coordenador"))
 
-    assert exc_info.value.status_code == 400
-    assert "Time" in exc_info.value.detail
+    assert result.username == "ana.silva"
+    user_repo.create.assert_called_once()
+    user_repo.update.assert_not_called()
 
 
 def test_create_gerente_with_new_team_creates_it(usecase, user_repo, time_repo):
@@ -106,14 +107,14 @@ def test_create_gerente_with_existing_team_id_links_it(usecase, user_repo, time_
     time_repo.create.assert_not_called()
 
 
-def test_create_coordenador_requires_subordinado_id(usecase, user_repo):
-    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="gerente")
+def test_create_gerente_without_subordinado_id_is_allowed(usecase, user_repo):
+    created_user = UserModel(id=1, username="ana.silva", role="gerente")
+    user_repo.create.return_value = created_user
 
-    with pytest.raises(HTTPException) as exc_info:
-        usecase.create_user(make_dto(role="gerente"))
+    result = usecase.create_user(make_dto(role="gerente"))
 
-    assert exc_info.value.status_code == 400
-    assert "Coordenador" in exc_info.value.detail
+    assert result.username == "ana.silva"
+    user_repo.create.assert_called_once()
 
 
 def test_create_coordenador_with_invalid_subordinado_raises_404(usecase, user_repo):

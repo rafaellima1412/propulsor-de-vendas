@@ -276,7 +276,7 @@ async def upload_imagem_base(
     """Recebe a imagem base (arte da campanha) escolhida no front, salva em
     media/uploads e devolve a URL pra ser usada como `folder_image` em
     POST /campanhas/. Não cria a campanha em si — é um passo separado."""
-    if user["role"] not in ("coordenador", "gerente"):
+    if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0]
@@ -304,7 +304,7 @@ async def create_campaign(
     user: dict = Depends(get_current_user),
     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
 ):
-    if user["role"] not in ("coordenador", "gerente"):
+    if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     if not validar_cpf(payload.cpf_usuario):
