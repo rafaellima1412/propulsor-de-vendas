@@ -13,13 +13,12 @@ from config.settings import OUTPUT_FOLDER, UPLOAD_FOLDER
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
-from src.application.services.qr_code_generator import generate_folder_with_qr, resolve_local_media_path
+from src.application.services.qr_code_generator import resolve_local_media_path
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
 from src.application.use_cases.user_usecase import UserUseCase
-from src.domain.validators.cpf_validator import validar_cpf
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
 from src.infra.router.schemas.campanha_requests import AssociarColaboradorRequest
@@ -307,14 +306,8 @@ async def create_campaign(
     if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    if not validar_cpf(payload.cpf_usuario):
-        raise HTTPException(status_code=400, detail="CPF inválido!")
-
     try:
-        output_filename = await generate_folder_with_qr(payload.cpf_usuario, payload.matricula, payload.folder_image)
-        output_url = f"/media/outputs/{output_filename}"
-
-        dto = payload.model_copy(update={"image": output_url})
+        dto = payload.model_copy(update={"image": payload.folder_image})
         campaign = use_case.execute(dto)
         return {"message": "Campanha criada com sucesso!", "campaign": campaign_to_dict(campaign)}
 

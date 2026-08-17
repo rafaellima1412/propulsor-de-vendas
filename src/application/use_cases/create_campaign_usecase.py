@@ -10,8 +10,11 @@ class CreateCampanhaUseCase:
         self._user_repo = user_repo
 
     def execute(self, dto: CampanhaCreateDTO) -> Campaign:
-        usuario = self._user_repo.get_by_cpf(dto.cpf_usuario)
-        if not usuario:
-            raise ValueError("Usuário com CPF informado não encontrado.")
+        usuario_id = None
+        if dto.cpf_usuario:
+            usuario = self._user_repo.get_by_cpf(dto.cpf_usuario)
+            if not usuario:
+                raise ValueError("Usuário com CPF informado não encontrado.")
+            usuario_id = usuario.id
 
-        return self._campanha_repo.create(dto, usuario.id)
+        return self._campanha_repo.create(dto, usuario_id)

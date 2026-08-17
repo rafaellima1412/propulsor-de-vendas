@@ -9,7 +9,7 @@ from src.infra.database.models.time_model import TimeModel
 
 class ICampanhaRepository(ABC):
     @abstractmethod
-    def create(self, campanha: CampanhaCreateDTO, usuario_id: int) -> Campaign:
+    def create(self, campanha: CampanhaCreateDTO, usuario_id: int | None) -> Campaign:
         pass
 
     @abstractmethod
