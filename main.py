@@ -14,6 +14,7 @@ from src.infra.settings.settings import settings
 
 container = Container()
 
+
 container.wire(
     modules=[
         "src.application.auth.auth",
@@ -30,8 +31,6 @@ container.wire(
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     init_db()
-
-    application.container = container
 
     yield
 

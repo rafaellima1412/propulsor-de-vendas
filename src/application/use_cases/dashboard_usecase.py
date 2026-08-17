@@ -41,7 +41,7 @@ class DashboardUseCase:
                 },
 
             }
-        if user["role"] == "coordenador": 
+        if user["role"] == "gerente": 
                     campanhas = self.campanha_repo.get_all() 
                     vendas_por_plano = self.venda_repo.contagem_por_plano_all()
                     vendas_por_mes = self.venda_repo.contagem_por_mes_all()
@@ -66,7 +66,7 @@ class DashboardUseCase:
                             },
                         }
                     }
-        if user["role"] == "gerente":
+        if user["role"] == "coordenador":
                     times = self.user_repo.get_times_ids_by_gerente(user["id"])
                     campanhas = self.campanha_repo.list_by_time_ids(times) 
                     colaboradores = self.user_repo.get_colaboradores_by_gerente(user["id"])

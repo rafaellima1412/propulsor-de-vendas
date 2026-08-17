@@ -34,7 +34,7 @@ class UserUseCase:
 
             new_user = self.user_repo.create(new_user)
 
-            if user.role == "gerente":
+            if user.role == "coordenador":
                 if user.novo_time and user.novo_time.strip():
                     time = self.time_repo.get_by_name(user.novo_time)
                     if not time:
@@ -46,7 +46,7 @@ class UserUseCase:
                     new_user.time_id = user.time_existente_id
                     self.user_repo.update(new_user)
                 else:
-                    raise HTTPException(status_code=400, detail="Time obrigatório para gerente.")
+                    raise HTTPException(status_code=400, detail="Time obrigatório para coordenador.")
 
             elif user.role == "colaborador":
                 print("Recebido time_id para colaborador:", user.time_id)
@@ -54,12 +54,12 @@ class UserUseCase:
                     new_user.time_id = user.time_id
                     self.user_repo.update(new_user)
 
-            elif user.role == "coordenador":
+            elif user.role == "gerente":
                 if user.subordinado_id:
                     # Buscar o time do gerente subordinado
                     subordinado = self.user_repo.get_by_id(user.subordinado_id)
-                    if not subordinado or subordinado.role != "gerente":
-                        raise HTTPException(status_code=404, detail="Gerente subordinado não encontrado.")
+                    if not subordinado or subordinado.role != "coordenador":
+                        raise HTTPException(status_code=404, detail="Coordenador subordinado não encontrado.")
 
                     # Atualiza o time(s) que o gerente lidera para ter esse COO
                     times = self.time_repo.get_by_gerente(subordinado.id)
@@ -68,7 +68,7 @@ class UserUseCase:
                         time_update_data = TimeUpdate.from_orm(time)
                         self.time_repo.update(time.id, time_update_data)
                 else:
-                    raise HTTPException(status_code=400, detail="Coordenador deve selecionar um gerente subordinado.")
+                    raise HTTPException(status_code=400, detail="Gerente deve selecionar um coordenador subordinado.")
 
             return new_user
         finally:

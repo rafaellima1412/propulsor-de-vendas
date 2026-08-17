@@ -12,7 +12,7 @@ router = APIRouter(prefix="/vendas")
 
 
 def require_gerente_ou_coordenador(user: dict = Depends(get_current_user)) -> dict:
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user
 
@@ -36,7 +36,7 @@ def list_vendas(
 ):
     # Coordenador vê tudo. Gerente vê só as vendas dos colaboradores do
     # próprio time — mesma regra de escopo já usada no dashboard.
-    if user["role"] == "coordenador":
+    if user["role"] == "gerente":
         return usecase.list_vendas()
 
     colaboradores = user_usecase.list_colaboradores_by_gerente(user["id"])

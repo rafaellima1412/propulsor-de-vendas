@@ -21,7 +21,7 @@ def _register_form(**overrides):
         full_name="Joao Gerente",
         cpf="11144477735",
         password="senha-forte-123",
-        role="gerente",
+        role="coordenador",
         novo_time="Time Alpha",
     )
     data.update(overrides)
@@ -39,9 +39,9 @@ def _bootstrap_admin(client):
 
 def test_bootstrap_first_user_becomes_admin_regardless_of_requested_role(client):
     """O caminho de bootstrap ignora o role pedido no formulário — senão
-    bastaria ser o primeiro a se cadastrar como "coordenador" pra furar a
+    bastaria ser o primeiro a se cadastrar como "gerente" pra furar a
     regra de que só admin cria os demais papéis."""
-    response = client.post("/user/register", json=_register_form())  # pede "gerente"
+    response = client.post("/user/register", json=_register_form())  # pede "coordenador"
     assert response.status_code == 201
 
     login = client.post("/user/login", json={"username": "joao.gerente", "password": "senha-forte-123"})
@@ -89,7 +89,7 @@ def test_login_with_correct_credentials_sets_cookie_and_returns_user(client):
     )
 
     assert response.status_code == 200
-    assert response.json() == {"username": "joao.gerente", "role": "gerente"}
+    assert response.json() == {"username": "joao.gerente", "role": "coordenador"}
     assert "access_token" in response.cookies
 
 
