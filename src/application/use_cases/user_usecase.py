@@ -45,8 +45,8 @@ class UserUseCase:
                 elif user.time_existente_id:
                     new_user.time_id = user.time_existente_id
                     self.user_repo.update(new_user)
-                else:
-                    raise HTTPException(status_code=400, detail="Time obrigatório para coordenador.")
+                # sem time informado: coordenador é criado sem time associado;
+                # pode ser vinculado depois pela tela de "Delegar times".
 
             elif user.role == "colaborador":
                 print("Recebido time_id para colaborador:", user.time_id)
@@ -67,8 +67,8 @@ class UserUseCase:
                         time.coo_id = new_user.id
                         time_update_data = TimeUpdate.from_orm(time)
                         self.time_repo.update(time.id, time_update_data)
-                else:
-                    raise HTTPException(status_code=400, detail="Gerente deve selecionar um coordenador subordinado.")
+                # sem subordinado informado: gerente é criado sem coordenador
+                # vinculado ainda.
 
             return new_user
         finally:
