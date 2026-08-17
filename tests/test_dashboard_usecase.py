@@ -35,7 +35,7 @@ def test_coordenador_usa_metodos_sem_filtro(usecase, campanha_repo, venda_repo, 
     venda_repo.contagem_por_plano_all.return_value = {"1GB": 10, "2GB": 5}
     venda_repo.contagem_por_mes_all.return_value = {(2026, 1): 7, (2026, 2): 8}
 
-    result = usecase.get_dashboard_data({"id": 1, "role": "coordenador"})
+    result = usecase.get_dashboard_data({"id": 1, "role": "gerente"})
 
     campanha_repo.get_all.assert_called_once_with()
     venda_repo.contagem_por_plano_all.assert_called_once_with()
@@ -50,7 +50,7 @@ def test_coordenador_nao_usa_metodos_escopados_por_usuario_ou_time(usecase, camp
     venda_repo.contagem_por_plano_all.return_value = {}
     venda_repo.contagem_por_mes_all.return_value = {}
 
-    usecase.get_dashboard_data({"id": 1, "role": "coordenador"})
+    usecase.get_dashboard_data({"id": 1, "role": "gerente"})
 
     campanha_repo.list_by_usuario_id.assert_not_called()
     campanha_repo.list_by_time_ids.assert_not_called()
@@ -65,7 +65,7 @@ def test_coordenador_monta_labels_e_dados_do_grafico_de_planos(usecase, campanha
     venda_repo.contagem_por_plano_all.return_value = {"1GB": 10, "2GB": 5, "10GB": 2}
     venda_repo.contagem_por_mes_all.return_value = {}
 
-    result = usecase.get_dashboard_data({"id": 1, "role": "coordenador"})
+    result = usecase.get_dashboard_data({"id": 1, "role": "gerente"})
     area = result["dashboard_data"]["area"]
 
     assert area["labels"] == ["1GB", "2GB", "10GB"]
@@ -79,7 +79,7 @@ def test_coordenador_monta_labels_de_mes_formatadas(usecase, campanha_repo, vend
     venda_repo.contagem_por_plano_all.return_value = {}
     venda_repo.contagem_por_mes_all.return_value = {(2026, 1): 3, (2026, 12): 9}
 
-    result = usecase.get_dashboard_data({"id": 1, "role": "coordenador"})
+    result = usecase.get_dashboard_data({"id": 1, "role": "gerente"})
     finance = result["dashboard_data"]["finance"]
 
     assert finance["labels"] == ["Jan/2026", "Dec/2026"]
@@ -93,7 +93,7 @@ def test_coordenador_com_dados_vazios_nao_quebra(usecase, campanha_repo, venda_r
     venda_repo.contagem_por_plano_all.return_value = {}
     venda_repo.contagem_por_mes_all.return_value = {}
 
-    result = usecase.get_dashboard_data({"id": 1, "role": "coordenador"})
+    result = usecase.get_dashboard_data({"id": 1, "role": "gerente"})
 
     assert result["campanhas"] == []
     assert result["dashboard_data"]["area"]["labels"] == []
@@ -123,7 +123,7 @@ def test_gerente_usa_metodos_escopados_por_time(usecase, campanha_repo, venda_re
     venda_repo.contagem_por_plano.return_value = {}
     venda_repo.contagem_por_mes.return_value = {}
 
-    usecase.get_dashboard_data({"id": 7, "role": "gerente"})
+    usecase.get_dashboard_data({"id": 7, "role": "coordenador"})
 
     user_repo.get_times_ids_by_gerente.assert_called_once_with(7)
     campanha_repo.list_by_time_ids.assert_called_once_with([1, 2])

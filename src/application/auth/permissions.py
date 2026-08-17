@@ -16,9 +16,9 @@ def require_role(*roles: str):
 
 # Roles individuais
 require_admin = require_role("admin")
-require_coordenador = require_role("coordenador")
-require_gerente = require_role("gerente")
+require_coordenador = require_role("gerente")
+require_gerente = require_role("coordenador")
 
 # Combinações reutilizadas em múltiplos routers
-require_gerente_ou_coordenador = require_role("gerente", "coordenador")
-require_coordenador_ou_admin = require_role("coordenador", "admin")
+require_gerente_ou_coordenador = require_role("coordenador", "gerente")
+require_coordenador_ou_admin = require_role("gerente", "admin")

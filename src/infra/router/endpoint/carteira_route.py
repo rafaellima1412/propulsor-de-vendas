@@ -26,7 +26,7 @@ async def carteira_do_time(
     usecase: CarteiraUseCase = Depends(Provide[Container.carteira_usecase]),
 ):
 
-    if user["role"] != "gerente":
+    if user["role"] != "coordenador":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     return usecase.calcular_carteira_time(user["id"])
@@ -39,7 +39,7 @@ async def carteira_geral(
     usecase: CarteiraUseCase = Depends(Provide[Container.carteira_usecase]),
 ):
 
-    if user["role"] != "coordenador":
+    if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     return usecase.calcular_carteira_geral()
@@ -53,7 +53,7 @@ async def carteira_de_usuario(
     usecase: CarteiraUseCase = Depends(Provide[Container.carteira_usecase]),
 ):
 
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     return usecase.calcular_carteira(usuario_id)

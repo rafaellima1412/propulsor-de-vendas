@@ -23,12 +23,12 @@ def test_wrong_password_fails_verification():
 
 
 def test_create_access_token_contains_expected_claims():
-    token = create_access_token(data={"sub": "rafael", "role": "gerente"})
+    token = create_access_token(data={"sub": "rafael", "role": "coordenador"})
 
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
     assert payload["sub"] == "rafael"
-    assert payload["role"] == "gerente"
+    assert payload["role"] == "coordenador"
     assert "exp" in payload
 
 

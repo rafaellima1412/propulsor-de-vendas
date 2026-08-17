@@ -93,7 +93,7 @@ async def campanhas_de_usuario(
 ):
     """Campanhas de um colaborador específico — usado pra popular o
     seletor de campanha na tela de simular venda."""
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     campanhas = campanha_repo.list_by_usuario_id(usuario_id)
@@ -109,7 +109,7 @@ async def campanhas_do_time(
 ):
     """Campanhas do time do usuário logado. Gerente vê o time que gerencia
     (pode ter mais de um); colaborador vê o time em que está."""
-    if user["role"] == "gerente":
+    if user["role"] == "coordenador":
         time_ids = user_usecase.list_times_by_gerente(user["id"])
         user_usecase.close()
     elif user["role"] == "colaborador":
@@ -132,7 +132,7 @@ async def campanhas_de_gerente(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     """Campanhas do time de um gerente específico — visão do coordenador."""
-    if user["role"] != "coordenador":
+    if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     time_ids = user_usecase.list_times_by_gerente(gerente_id)
@@ -154,7 +154,7 @@ async def associar_colaborador(
     """Associa um colaborador a uma campanha já existente (além de quem já
     estava). Gerente só pode associar colaboradores do próprio time (ou
     ainda sem time); coordenador pode associar qualquer um."""
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     colaborador = user_usecase.get_user(payload.usuario_id)
@@ -162,7 +162,7 @@ async def associar_colaborador(
         user_usecase.close()
         raise HTTPException(status_code=400, detail="Colaborador não encontrado.")
 
-    if user["role"] == "gerente":
+    if user["role"] == "coordenador":
         time_ids_gerente = user_usecase.list_times_by_gerente(user["id"])
         if colaborador.time_id is not None and colaborador.time_id not in time_ids_gerente:
             user_usecase.close()
@@ -193,7 +193,7 @@ async def campaign_detail(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
-    if user["role"] not in ["colaborador", "gerente", "coordenador"]:
+    if user["role"] not in ["colaborador", "coordenador", "gerente"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     # O frontend decide, com base em user.role, se mostra a tela de detalhe
@@ -231,7 +231,7 @@ async def campaign_social_image(
     if user["role"] == "colaborador":
         if campaign.usuario_id != user["id"]:
             raise HTTPException(status_code=403, detail="Acesso negado")
-    elif user["role"] not in ("gerente", "coordenador"):
+    elif user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     if not campaign.image:
@@ -276,7 +276,7 @@ async def upload_imagem_base(
     """Recebe a imagem base (arte da campanha) escolhida no front, salva em
     media/uploads e devolve a URL pra ser usada como `folder_image` em
     POST /campanhas/. Não cria a campanha em si — é um passo separado."""
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     content_type = file.content_type or mimetypes.guess_type(file.filename or "")[0]
@@ -304,7 +304,7 @@ async def create_campaign(
     user: dict = Depends(get_current_user),
     use_case: CreateCampanhaUseCase = Depends(Provide[Container.create_campaign_use_case]),
 ):
-    if user["role"] not in ("gerente", "coordenador"):
+    if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     if not validar_cpf(payload.cpf_usuario):

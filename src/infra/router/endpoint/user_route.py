@@ -126,9 +126,9 @@ async def api_gerentes(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] not in ("coordenador", "admin"):
+    if current_user["role"] not in ("gerente", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
-    gerentes = user_usecase.list_by_role("gerente")
+    gerentes = user_usecase.list_by_role("coordenador")
     result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
     user_usecase.close()
     return result
@@ -141,13 +141,13 @@ async def search_colaboradores(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] not in ("gerente", "coordenador", "admin"):
+    if current_user["role"] not in ("coordenador", "gerente", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     # Gerente só pode ver/associar colaboradores que ainda não têm time ou
     # que já são do próprio time — coordenador/admin veem todo mundo.
     time_ids = None
-    if current_user["role"] == "gerente":
+    if current_user["role"] == "coordenador":
         time_ids = user_usecase.list_times_by_gerente(current_user["id"])
 
     colaboradores = user_usecase.search_colaboradores(q, time_ids)
@@ -164,7 +164,7 @@ def assign_user_time(
     current_user: dict = Depends(get_current_user),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    if current_user["role"] != "gerente":
+    if current_user["role"] != "coordenador":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     try:

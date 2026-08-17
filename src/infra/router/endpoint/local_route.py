@@ -9,13 +9,13 @@ from src.infra.dy.container import Container
 router = APIRouter(prefix="/locais", tags=["Locais"])
 
 def require_coordenador(user: dict = Depends(get_current_user)) -> dict:
-    if user["role"] != "coordenador":
+    if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user
 
 
 def require_gerente_ou_coordenador(user: dict = Depends(get_current_user)) -> dict:
-    if user["role"] not in ("gerente", "coordenador", "admin"):
+    if user["role"] not in ("coordenador", "gerente", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user
 
