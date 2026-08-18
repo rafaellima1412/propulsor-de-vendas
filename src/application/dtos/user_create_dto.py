@@ -8,8 +8,3 @@ class UserCreateDTO(BaseModel):
     cpf: constr(min_length=11, max_length=14)
     hashed_password: str
     campanhas: list[int] = []
-
-    subordinado_id: int | None = None
-    time_existente_id: int | None = None
-    novo_time: str | None = None
-    time_id: int | None = None

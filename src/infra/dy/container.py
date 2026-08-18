@@ -4,14 +4,12 @@ from src.application.use_cases.carteira_usecase import CarteiraUseCase
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.local_usecase import LocalUseCase
-from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
 from src.application.use_cases.user_usecase import UserUseCase
 from src.application.use_cases.venda_usecase import VendaUseCase
 from src.infra.database.session import SessionLocal
 from src.infra.repositories.campaign_repository import CampanhaRepository
 from src.infra.repositories.local_repository import LocalRepository
-from src.infra.repositories.TimeRepository import TimeRepository
 from src.infra.repositories.user_repository import UserRepository
 from src.infra.repositories.venda_repository import VendaRepository
 
@@ -24,7 +22,6 @@ class Container(containers.DeclarativeContainer):
             "src.infra.router.endpoint.carteira_route",
             "src.application.auth.auth",
             "src.infra.router.endpoint.campaign_route",
-            "src.infra.router.endpoint.team_route",
             "src.infra.router.endpoint.local_route",
         ]
     )
@@ -43,13 +40,11 @@ class Container(containers.DeclarativeContainer):
 
     campanha_repository = providers.Factory(CampanhaRepository, db=db_session)
 
-    time_repository = providers.Factory(TimeRepository, db_session=db_session)
     local_repository = providers.Factory(LocalRepository, db=db_session)
 
     user_usecase = providers.Factory(
         UserUseCase,
         user_repo=user_repository,
-        time_repo=time_repository,
     )
 
     venda_usecase = providers.Factory(
@@ -74,10 +69,6 @@ class Container(containers.DeclarativeContainer):
         user_repo=user_repository,
     )
 
-    time_usecase = providers.Factory(
-        TimeUseCase,
-        time_repository=time_repository,
-    )
     local_usecase = providers.Factory(
         LocalUseCase,
         local_repository=local_repository,
@@ -87,5 +78,4 @@ class Container(containers.DeclarativeContainer):
         campanha_repo=campanha_repository,
         venda_repo=venda_repository,
         user_repo=user_repository,
-        # time_repo=time_repository,
     )

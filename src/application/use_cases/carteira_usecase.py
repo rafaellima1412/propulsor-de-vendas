@@ -19,13 +19,12 @@ class CarteiraUseCase:
 
         return CarteiraOut(usuario_id=usuario_id, total_campanhas=len(campanhas), **resumo)
 
-    def calcular_carteira_time(self, gerente_id: int) -> CarteiraAgregadaOut:
-        colaboradores = self.user_repo.get_colaboradores_by_gerente(gerente_id)
+    def calcular_carteira_time(self, coordenador_id: int) -> CarteiraAgregadaOut:
+        colaboradores = self.user_repo.get_colaboradores_by_coordenador(coordenador_id)
         colaborador_ids = [c.id for c in colaboradores]
 
         vendas = self.venda_repo.get_by_usuario_ids(colaborador_ids)
-        time_ids = self.user_repo.get_times_ids_by_gerente(gerente_id)
-        campanhas = self.campanha_repo.list_by_time_ids(time_ids)
+        campanhas = self.campanha_repo.list_by_coordenador_id(coordenador_id)
         resumo = self._resumir_vendas(vendas)
 
         return CarteiraAgregadaOut(

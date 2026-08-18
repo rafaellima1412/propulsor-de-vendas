@@ -2,8 +2,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from src.domain.entities.time_schema import UserMinimal
 from src.domain.enums.enums import PlanoInternet, StatusVenda
+
+
+class UserMinimal(BaseModel):
+    id: int
+    full_name: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CampanhaMinimal(BaseModel):

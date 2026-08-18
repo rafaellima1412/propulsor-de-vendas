@@ -5,7 +5,6 @@ from src.application.repositories.icampaign_repository import ICampanhaRepositor
 from src.domain.entities.campaign import Campaign
 from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.campaign_model import CampanhaModel
-from src.infra.database.models.time_model import TimeModel
 
 
 class CampanhaRepository(ICampanhaRepository):
@@ -29,15 +28,6 @@ class CampanhaRepository(ICampanhaRepository):
                 raise ValueError("Usuário não encontrado")
 
             db_campanha.usuarios.append(usuario)
-
-            if usuario.time_id:
-                time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
-                if time:
-                    db_campanha.times.append(time)
-                # sem time encontrado pro time_id salvo: segue sem associar time
-                # à campanha, em vez de bloquear a criação.
-            # usuário sem time associado: campanha é criada mesmo assim, sem
-            # nenhum time vinculado.
         # sem usuario_id: campanha criada sem colaborador vinculado ainda —
         # associação acontece depois, pela tela de "associar campanha".
 
@@ -56,7 +46,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=usuario_id,
-            times=[time.id for time in db_campanha.times],
+            coordenador_id=db_campanha.coordenador_id,
         )
         self.db.close()
         return campaign
@@ -81,7 +71,7 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=usuario_id,
-                times=[time.id for time in c.times],
+                coordenador_id=c.coordenador_id,
             )
             for c in campanhas_db
         ]
@@ -105,17 +95,17 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
-            times=[time.id for time in db_campanha.times],
+            coordenador_id=db_campanha.coordenador_id,
         )
         self.db.close()
         return campaign
 
-    def list_by_time_ids(self, time_ids: list[int]) -> list[Campaign]:
-        if not time_ids:
-            return []
-
+    def list_by_coordenador_id(self, coordenador_id: int) -> list[Campaign]:
         campanhas_db = (
-            self.db.query(CampanhaModel).join(CampanhaModel.times).filter(TimeModel.id.in_(time_ids)).distinct().all()
+            self.db.query(CampanhaModel)
+            .filter(CampanhaModel.coordenador_id == coordenador_id)
+            .options(joinedload(CampanhaModel.usuarios))
+            .all()
         )
         campanhas = [
             Campaign(
@@ -129,20 +119,12 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
-                times=[time.id for time in c.times],
+                coordenador_id=c.coordenador_id,
             )
             for c in campanhas_db
         ]
         self.db.close()
         return campanhas
-
-    def get_time_by_id(self, time_id: int) -> TimeModel | None:
-        # ATENÇÃO: não fechar a sessão aqui. O objeto TimeModel retornado é
-        # atribuído depois a um relacionamento vivo do SQLAlchemy dentro de
-        # UpdateCampaignUseCase (db_campaign.times = ...) e só é persistido
-        # quando update() roda em seguida, na MESMA sessão. Fechar aqui
-        # quebraria esse fluxo.
-        return self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
 
     def get_all(self) -> list[Campaign]:
         campanhas_db = self.db.query(CampanhaModel).options(joinedload(CampanhaModel.usuarios)).all()
@@ -158,7 +140,7 @@ class CampanhaRepository(ICampanhaRepository):
                 qrcode_url=c.qrcode_url,
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
-                times=[time.id for time in c.times],
+                coordenador_id=c.coordenador_id,
             )
             for c in campanhas_db
         ]
@@ -193,27 +175,25 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
-            times=[time.id for time in db_campanha.times],
+            coordenador_id=db_campanha.coordenador_id,
         )
         self.db.close()
         return campaign
 
-    def adicionar_time(self, campanha_id: int, time_id: int) -> Campaign | None:
+    def definir_coordenador(self, campanha_id: int, coordenador_id: int) -> Campaign | None:
         db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
             self.db.close()
             return None
 
-        time = self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
-        if not time:
+        coordenador = self.db.query(UserModel).filter(UserModel.id == coordenador_id).first()
+        if not coordenador:
             self.db.close()
-            raise ValueError("Time não encontrado.")
+            raise ValueError("Coordenador não encontrado.")
 
-        ja_associado = any(t.id == time_id for t in db_campanha.times)
-        if not ja_associado:
-            db_campanha.times.append(time)
-            self.db.commit()
-            self.db.refresh(db_campanha)
+        db_campanha.coordenador_id = coordenador_id
+        self.db.commit()
+        self.db.refresh(db_campanha)
 
         campaign = Campaign(
             id=db_campanha.id,
@@ -226,7 +206,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campanha.qrcode_url,
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
-            times=[time.id for time in db_campanha.times],
+            coordenador_id=db_campanha.coordenador_id,
         )
         self.db.close()
         return campaign
@@ -243,7 +223,6 @@ class CampanhaRepository(ICampanhaRepository):
         db_campaign.folder_url = campaign.folder_url
         db_campaign.qrcode_url = campaign.qrcode_url
         db_campaign.image = campaign.image
-        db_campaign.times = campaign.times
 
         self.db.commit()
         self.db.refresh(db_campaign)
@@ -259,7 +238,7 @@ class CampanhaRepository(ICampanhaRepository):
             qrcode_url=db_campaign.qrcode_url,
             data_criacao=db_campaign.data_criacao,
             usuario_id=db_campaign.usuarios[0].id if db_campaign.usuarios else None,
-            times=[time.id for time in db_campaign.times],
+            coordenador_id=db_campaign.coordenador_id,
         )
         self.db.close()
         return updated_campaign

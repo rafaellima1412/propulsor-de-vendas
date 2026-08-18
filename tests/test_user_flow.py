@@ -22,7 +22,6 @@ def _register_form(**overrides):
         cpf="11144477735",
         password="senha-forte-123",
         role="coordenador",
-        novo_time="Time Alpha",
     )
     data.update(overrides)
     return data
