@@ -12,7 +12,7 @@ class CampanhaRepository(ICampanhaRepository):
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, campanha: CampanhaCreateDTO, usuario_id: int) -> Campaign:
+    def create(self, campanha: CampanhaCreateDTO, usuario_id: int | None) -> Campaign:
         db_campanha = CampanhaModel(
             title=campanha.title,
             paragraph=campanha.paragraph,
@@ -22,20 +22,24 @@ class CampanhaRepository(ICampanhaRepository):
             folder_url=campanha.folder_url,
             qrcode_url=campanha.qrcode_url,
         )
-        usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
-        if not usuario:
-            raise ValueError("Usuário não encontrado")
 
-        db_campanha.usuarios.append(usuario)
+        if usuario_id is not None:
+            usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
+            if not usuario:
+                raise ValueError("Usuário não encontrado")
 
-        if usuario.time_id:
-            time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
-            if time:
-                db_campanha.times.append(time)
-            else:
-                raise ValueError("Time não encontrado")
-        else:
-            raise ValueError("Usuário não está associado a nenhum time")
+            db_campanha.usuarios.append(usuario)
+
+            if usuario.time_id:
+                time = self.db.query(TimeModel).filter(TimeModel.id == usuario.time_id).first()
+                if time:
+                    db_campanha.times.append(time)
+                # sem time encontrado pro time_id salvo: segue sem associar time
+                # à campanha, em vez de bloquear a criação.
+            # usuário sem time associado: campanha é criada mesmo assim, sem
+            # nenhum time vinculado.
+        # sem usuario_id: campanha criada sem colaborador vinculado ainda —
+        # associação acontece depois, pela tela de "associar campanha".
 
         self.db.add(db_campanha)
         self.db.commit()

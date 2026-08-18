@@ -5,8 +5,8 @@ class CampanhaCreateDTO(BaseModel):
     title: str
     paragraph: str
     image: str | None = None
-    cpf_usuario: str
-    matricula: str
+    cpf_usuario: str | None = None
+    matricula: str | None = None
     folder_image: str
     post_type: str | None = None
     url: str | None = None
