@@ -13,7 +13,6 @@ from src.infra.database.models.user_model import UserModel
 from src.infra.database.session import SessionLocal
 from src.infra.dy.container import Container
 from src.infra.router.schemas.user_requests import (
-    AssignTimeRequest,
     ForgotPasswordRequest,
     LoginRequest,
     UserRegisterRequest,
@@ -70,10 +69,6 @@ def register_user(
             cpf=payload.cpf,
             hashed_password=hashed_password,
             role=role,
-            subordinado_id=payload.subordinado_id,
-            time_existente_id=payload.time_existente_id,
-            novo_time=payload.novo_time,
-            time_id=payload.time_id,
         )
         user_usecase.create_user(user_data)
         return {"message": "Usuário cadastrado com sucesso"}
@@ -144,40 +139,10 @@ async def search_colaboradores(
     if current_user["role"] not in ("coordenador", "gerente", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    # Gerente só pode ver/associar colaboradores que ainda não têm time ou
-    # que já são do próprio time — coordenador/admin veem todo mundo.
-    time_ids = None
-    if current_user["role"] == "coordenador":
-        time_ids = user_usecase.list_times_by_gerente(current_user["id"])
-
-    colaboradores = user_usecase.search_colaboradores(q, time_ids)
+    colaboradores = user_usecase.search_colaboradores(q)
     result = [UserOut.model_validate(u, from_attributes=True) for u in colaboradores]
     user_usecase.close()
     return result
-
-
-@router.put("/{user_id}/time")
-@inject
-def assign_user_time(
-    user_id: int,
-    payload: AssignTimeRequest,
-    current_user: dict = Depends(get_current_user),
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
-):
-    if current_user["role"] != "coordenador":
-        raise HTTPException(status_code=403, detail="Acesso negado")
-
-    try:
-        user = user_usecase.assign_time(user_id, payload.time_id)
-        
-        return {
-            "id": user.id,
-            "username": user.username,
-            "full_name": user.full_name,
-            "time_id": user.time_id,
-        }
-    finally:
-        user_usecase.close()
 
 
 @router.post("/logout")

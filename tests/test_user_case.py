@@ -31,13 +31,8 @@ def user_repo():
 
 
 @pytest.fixture
-def time_repo():
-    return MagicMock()
-
-
-@pytest.fixture
-def usecase(user_repo, time_repo):
-    return UserUseCase(user_repo=user_repo, time_repo=time_repo)
+def usecase(user_repo):
+    return UserUseCase(user_repo=user_repo)
 
 
 def test_create_user_rejects_duplicate_cpf(usecase, user_repo):
@@ -62,69 +57,31 @@ def test_create_user_rejects_duplicate_username(usecase, user_repo):
     user_repo.create.assert_not_called()
 
 
-def test_create_colaborador_without_time_is_allowed(usecase, user_repo):
+def test_create_colaborador_is_allowed(usecase, user_repo):
     user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="colaborador")
 
     result = usecase.create_user(make_dto(role="colaborador"))
 
     assert result.username == "ana.silva"
     user_repo.create.assert_called_once()
-    user_repo.update.assert_not_called()
 
 
-def test_create_coordenador_without_team_info_is_allowed(usecase, user_repo):
-    created_user = UserModel(id=1, username="ana.silva", role="coordenador")
-    user_repo.create.return_value = created_user
+def test_create_coordenador_is_allowed(usecase, user_repo):
+    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="coordenador")
 
     result = usecase.create_user(make_dto(role="coordenador"))
 
     assert result.username == "ana.silva"
     user_repo.create.assert_called_once()
-    user_repo.update.assert_not_called()
 
 
-def test_create_gerente_with_new_team_creates_it(usecase, user_repo, time_repo):
-    created_user = UserModel(id=1, username="ana.silva", role="coordenador")
-    user_repo.create.return_value = created_user
-    time_repo.get_by_name.return_value = None
-    time_repo.create.return_value = MagicMock(id=42)
-
-    usecase.create_user(make_dto(role="coordenador", novo_time="Time Alpha"))
-
-    time_repo.create.assert_called_once()
-    user_repo.update.assert_called_once()
-    assert created_user.time_id == 42
-
-
-def test_create_gerente_with_existing_team_id_links_it(usecase, user_repo, time_repo):
-    created_user = UserModel(id=1, username="ana.silva", role="coordenador")
-    user_repo.create.return_value = created_user
-
-    usecase.create_user(make_dto(role="coordenador", time_existente_id=7))
-
-    assert created_user.time_id == 7
-    user_repo.update.assert_called_once()
-    time_repo.create.assert_not_called()
-
-
-def test_create_gerente_without_subordinado_id_is_allowed(usecase, user_repo):
-    created_user = UserModel(id=1, username="ana.silva", role="gerente")
-    user_repo.create.return_value = created_user
+def test_create_gerente_is_allowed(usecase, user_repo):
+    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="gerente")
 
     result = usecase.create_user(make_dto(role="gerente"))
 
     assert result.username == "ana.silva"
     user_repo.create.assert_called_once()
-
-
-def test_create_coordenador_with_invalid_subordinado_raises_404(usecase, user_repo):
-    user_repo.create.return_value = UserModel(id=1, username="ana.silva", role="gerente")
-    user_repo.get_by_id.return_value = None
-
-    with pytest.raises(HTTPException) as exc_info:
-        usecase.create_user(make_dto(role="gerente", subordinado_id=99))
-
-    assert exc_info.value.status_code == 404
 
 
 def test_list_users_delegates_to_repository(usecase, user_repo):

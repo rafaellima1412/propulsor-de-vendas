@@ -20,26 +20,24 @@ class IUserRepository(ABC):
 
     @abstractmethod
     def get_by_cpf(self, cpf: str) -> UserModel | None:
-        pass 
+        pass
 
     @abstractmethod
     def get_by_username(self, username: str) -> UserModel | None:
         pass
+
     @abstractmethod
     def update(self, user: UserModel) -> UserModel:
         pass
+
     @abstractmethod
     def get_by_role(self, role: str) -> list[UserModel]:
         pass
+
     @abstractmethod
-    def get_gerentes_by_coo(self, coo_id: int) -> list[UserModel]:
+    def get_colaboradores_by_coordenador(self, coordenador_id: int) -> list[UserModel]:
         pass
+
     @abstractmethod
-    def get_times_ids_by_gerente(self, gerente_id: int) -> list[int]:
-        pass
-    @abstractmethod
-    def get_colaboradores_by_gerente(self, gerente_id: int) -> list[UserModel]:
-        pass
-    @abstractmethod
-    def search_colaboradores(self, query: str | None = None, time_ids: list[int] | None = None) -> list[UserModel]:
+    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
         pass

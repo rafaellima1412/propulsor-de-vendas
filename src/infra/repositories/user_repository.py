@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.repositories.iuser_repository import IUserRepository
-from src.infra.database.models.time_model import TimeModel
+from src.infra.database.models.campaign_model import CampanhaModel
 from src.infra.database.models.user_model import UserModel
 
 
@@ -43,13 +43,9 @@ class UserRepository(IUserRepository):
         return resultado
 
     def get_by_id(self, user_id: int) -> UserModel | None:
-        # ATENÇÃO: não fechar a sessão aqui. assign_time() busca o usuário,
-        # muda o time_id e chama update() em seguida NO MESMO objeto —
-        # update() faz self.db.refresh(user), que exige uma sessão ativa.
-        # Fechar aqui quebra esse fluxo com DetachedInstanceError (testado).
-        # Quem usa get_by_id sem chamar update() depois deve fechar a
-        # própria sessão manualmente (ver os outros call sites).
-        return self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        resultado = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        self.db.close()
+        return resultado
 
     def get_by_cpf(self, cpf: str) -> UserModel | None:
         resultado = self.db.query(UserModel).filter(UserModel.cpf == cpf).first()
@@ -57,39 +53,30 @@ class UserRepository(IUserRepository):
         return resultado
 
     def get_by_role(self, role: str) -> list[UserModel]:
-        # ATENÇÃO: não fechar a sessão aqui. Quem chama isso (rotas /gerentes
-        # e usos futuros parecidos) serializa o resultado via UserOut logo em
-        # seguida, o que pode disparar lazy-load em campanha.times (só
-        # campanhas em si vêm eager-loaded, o nível de baixo não) — fechar
-        # cedo quebraria isso. O chamador é responsável por fechar depois de
-        # terminar de usar (ver user_usecase.close() nas rotas que usam isso).
-        return self.db.query(UserModel).options(selectinload(UserModel.campanhas)).filter(UserModel.role == role).all()
-
-    def get_gerentes_by_coo(self, coo_id: int) -> list[UserModel]:
-        times = self.db.query(TimeModel).filter(TimeModel.coo_id == coo_id).all()
-        gerente_ids = {t.gerente_id for t in times if t.gerente_id is not None}
-        resultado = self.db.query(UserModel).filter(UserModel.id.in_(gerente_ids)).all()
+        resultado = (
+            self.db.query(UserModel).options(selectinload(UserModel.campanhas)).filter(UserModel.role == role).all()
+        )
         self.db.close()
         return resultado
 
-    def get_times_ids_by_gerente(self, gerente_id: int) -> list[int]:
-        times = self.db.query(TimeModel).filter(TimeModel.gerente_id == gerente_id).all()
-        resultado = [t.id for t in times]
+    def get_colaboradores_by_coordenador(self, coordenador_id: int) -> list[UserModel]:
+        """Colaboradores que estão em alguma campanha desse coordenador —
+        não existe mais um 'time' fixo; o vínculo é via campanha."""
+        resultado = (
+            self.db.query(UserModel)
+            .join(UserModel.campanhas)
+            .filter(CampanhaModel.coordenador_id == coordenador_id)
+            .distinct()
+            .all()
+        )
         self.db.close()
         return resultado
 
-    def get_colaboradores_by_gerente(self, gerente_id: int) -> list[UserModel]:
-        times = self.db.query(TimeModel).filter(TimeModel.gerente_id == gerente_id).all()
-        time_ids = [t.id for t in times]
-        resultado = self.db.query(UserModel).filter(UserModel.time_id.in_(time_ids)).all()
-        self.db.close()
-        return resultado
-
-    def search_colaboradores(self, query: str | None = None, time_ids: list[int] | None = None) -> list[UserModel]:
+    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
+        # ATENÇÃO: não fechar a sessão aqui — mesmo motivo do get_by_role
+        # (serialização via UserOut faz lazy-load de `campanhas` logo em
+        # seguida). Quem chama fecha depois (ver user_usecase.close()).
         base = self.db.query(UserModel).filter(UserModel.role == "colaborador")
-
-        if time_ids is not None:
-            base = base.filter(or_(UserModel.time_id.is_(None), UserModel.time_id.in_(time_ids)))
 
         if query:
             termo = f"%{query.strip()}%"

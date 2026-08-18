@@ -53,11 +53,10 @@ def test_coordenador_nao_usa_metodos_escopados_por_usuario_ou_time(usecase, camp
     usecase.get_dashboard_data({"id": 1, "role": "gerente"})
 
     campanha_repo.list_by_usuario_id.assert_not_called()
-    campanha_repo.list_by_time_ids.assert_not_called()
+    campanha_repo.list_by_coordenador_id.assert_not_called()
     venda_repo.contagem_por_plano.assert_not_called()
     venda_repo.contagem_por_mes.assert_not_called()
-    user_repo.get_times_ids_by_gerente.assert_not_called()
-    user_repo.get_colaboradores_by_gerente.assert_not_called()
+    user_repo.get_colaboradores_by_coordenador.assert_not_called()
 
 
 def test_coordenador_monta_labels_e_dados_do_grafico_de_planos(usecase, campanha_repo, venda_repo):
@@ -116,15 +115,14 @@ def test_colaborador_usa_metodos_escopados_por_usuario(usecase, campanha_repo, v
     campanha_repo.get_all.assert_not_called()
 
 
-def test_gerente_usa_metodos_escopados_por_time(usecase, campanha_repo, venda_repo, user_repo):
-    user_repo.get_times_ids_by_gerente.return_value = [1, 2]
-    user_repo.get_colaboradores_by_gerente.return_value = []
-    campanha_repo.list_by_time_ids.return_value = []
+def test_coordenador_role_usa_metodos_escopados_por_campanha(usecase, campanha_repo, venda_repo, user_repo):
+    user_repo.get_colaboradores_by_coordenador.return_value = []
+    campanha_repo.list_by_coordenador_id.return_value = []
     venda_repo.contagem_por_plano.return_value = {}
     venda_repo.contagem_por_mes.return_value = {}
 
     usecase.get_dashboard_data({"id": 7, "role": "coordenador"})
 
-    user_repo.get_times_ids_by_gerente.assert_called_once_with(7)
-    campanha_repo.list_by_time_ids.assert_called_once_with([1, 2])
+    user_repo.get_colaboradores_by_coordenador.assert_called_once_with(7)
+    campanha_repo.list_by_coordenador_id.assert_called_once_with(7)
     campanha_repo.get_all.assert_not_called()

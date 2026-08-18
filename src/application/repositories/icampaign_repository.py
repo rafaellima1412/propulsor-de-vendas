@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.domain.entities.campaign import Campaign
-from src.infra.database.models.campaign_model  import CampanhaModel
-from src.infra.database.models.time_model import TimeModel
+from src.infra.database.models.campaign_model import CampanhaModel
 
 
 class ICampanhaRepository(ABC):
@@ -17,15 +15,11 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
-    def list_by_time_ids(self, time_ids: list[int]) -> list[Campaign]:
+    def list_by_coordenador_id(self, coordenador_id: int) -> list[Campaign]:
         pass
 
     @abstractmethod
     def update(self, campaign: Campaign) -> Campaign:
-        pass
-
-    @abstractmethod
-    def get_time_by_id(self, time_id: int) -> Optional[TimeModel]:
         pass
 
     @abstractmethod
@@ -41,5 +35,5 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
-    def adicionar_time(self, campanha_id: int, time_id: int) -> Campaign | None:
+    def definir_coordenador(self, campanha_id: int, coordenador_id: int) -> Campaign | None:
         pass

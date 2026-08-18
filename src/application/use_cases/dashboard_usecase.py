@@ -67,9 +67,8 @@ class DashboardUseCase:
                         }
                     }
         if user["role"] == "coordenador":
-                    times = self.user_repo.get_times_ids_by_gerente(user["id"])
-                    campanhas = self.campanha_repo.list_by_time_ids(times) 
-                    colaboradores = self.user_repo.get_colaboradores_by_gerente(user["id"])
+                    campanhas = self.campanha_repo.list_by_coordenador_id(user["id"])
+                    colaboradores = self.user_repo.get_colaboradores_by_coordenador(user["id"])
                     colaborador_ids = [colaborador.id for colaborador in colaboradores]
                     vendas_por_plano = self.venda_repo.contagem_por_plano(colaborador_ids)
                     vendas_por_mes = self.venda_repo.contagem_por_mes(colaborador_ids)

@@ -1,10 +1,9 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from src.infra.database.base import Base
-from src.infra.database.models.campanha_time import campanha_time
 
 
 class CampanhaModel(Base):
@@ -21,7 +20,10 @@ class CampanhaModel(Base):
     qrcode_url = Column(String, nullable=True)
     data_criacao = Column(DateTime, default=datetime.now(UTC))
 
+    # A campanha É o time/região: o coordenador responsável fica direto
+    # aqui, sem uma tabela "times" separada no meio.
+    coordenador_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    coordenador = relationship("UserModel", foreign_keys=[coordenador_id], lazy="joined")
+
     usuarios = relationship("UserModel", secondary="user_campanha", back_populates="campanhas")
     vendas = relationship("VendaModel", back_populates="campanha", cascade="all, delete-orphan")
-
-    times = relationship("TimeModel", secondary=campanha_time, back_populates="campanhas")

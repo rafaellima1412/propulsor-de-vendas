@@ -16,7 +16,6 @@ from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
 from src.application.services.qr_code_generator import resolve_local_media_path
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
-from src.application.use_cases.team_usecase import TimeUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
 from src.application.use_cases.user_usecase import UserUseCase
 from src.infra.dy.container import Container
@@ -63,6 +62,7 @@ def campaign_to_dict(campaign):
         "folder_url": campaign.folder_url,
         "qrcode_url": campaign.qrcode_url,
         "usuario_id": campaign.usuario_id,
+        "coordenador_id": campaign.coordenador_id,
         "data_criacao": campaign.data_criacao.strftime("%Y-%m-%d %H:%M:%S") if campaign.data_criacao else None,
     }
 
@@ -104,21 +104,17 @@ async def campanhas_de_usuario(
 async def campanhas_do_time(
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    """Campanhas do time do usuário logado. Gerente vê o time que gerencia
-    (pode ter mais de um); colaborador vê o time em que está."""
+    """Campanhas do usuário logado. Coordenador vê as campanhas que
+    coordena (pode ter mais de uma); colaborador vê as campanhas em que
+    está."""
     if user["role"] == "coordenador":
-        time_ids = user_usecase.list_times_by_gerente(user["id"])
-        user_usecase.close()
+        campanhas = campanha_repo.list_by_coordenador_id(user["id"])
     elif user["role"] == "colaborador":
-        colaborador = user_usecase.get_user(user["id"])
-        time_ids = [colaborador.time_id] if colaborador and colaborador.time_id else []
-        user_usecase.close()
+        campanhas = campanha_repo.list_by_usuario_id(user["id"])
     else:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    campanhas = campanha_repo.list_by_time_ids(time_ids)
     return [campaign_to_dict(c) for c in campanhas]
 
 
@@ -128,16 +124,12 @@ async def campanhas_de_gerente(
     gerente_id: int,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
-    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    """Campanhas do time de um gerente específico — visão do coordenador."""
+    """Campanhas de um coordenador específico — visão do gerente."""
     if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    time_ids = user_usecase.list_times_by_gerente(gerente_id)
-    user_usecase.close()
-
-    campanhas = campanha_repo.list_by_time_ids(time_ids)
+    campanhas = campanha_repo.list_by_coordenador_id(gerente_id)
     return [campaign_to_dict(c) for c in campanhas]
 
 
@@ -147,14 +139,13 @@ async def campanhas_sem_coordenador(
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
 ):
-    """Campanhas que ainda não têm nenhum time (e portanto nenhum
-    coordenador) vinculado. Usado na tela 'Campanhas por coordenador' pra
-    escolher qual campanha vincular."""
+    """Campanhas que ainda não têm coordenador responsável. Usado na tela
+    'Campanhas por coordenador' pra escolher qual campanha vincular."""
     if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     campanhas = campanha_repo.get_all()
-    sem_coordenador = [c for c in campanhas if not c.times]
+    sem_coordenador = [c for c in campanhas if not c.coordenador_id]
     return [campaign_to_dict(c) for c in sem_coordenador]
 
 
@@ -168,8 +159,8 @@ async def associar_colaborador(
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     """Associa um colaborador a uma campanha já existente (além de quem já
-    estava). Gerente só pode associar colaboradores do próprio time (ou
-    ainda sem time); coordenador pode associar qualquer um."""
+    estava). Coordenador só pode associar colaboradores à(s) própria(s)
+    campanha(s); gerente pode associar a qualquer uma."""
     if user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
@@ -177,13 +168,12 @@ async def associar_colaborador(
     if not colaborador or colaborador.role != "colaborador":
         user_usecase.close()
         raise HTTPException(status_code=400, detail="Colaborador não encontrado.")
+    user_usecase.close()
 
     if user["role"] == "coordenador":
-        time_ids_gerente = user_usecase.list_times_by_gerente(user["id"])
-        if colaborador.time_id is not None and colaborador.time_id not in time_ids_gerente:
-            user_usecase.close()
-            raise HTTPException(status_code=403, detail="Esse colaborador não é do seu time.")
-    user_usecase.close()
+        campanha_atual = campanha_repo.get_by_id(campanha_id)
+        if campanha_atual and campanha_atual.coordenador_id not in (None, user["id"]):
+            raise HTTPException(status_code=403, detail="Essa campanha não é sua.")
 
     try:
         campanha = campanha_repo.adicionar_colaborador(campanha_id, payload.usuario_id)
@@ -205,8 +195,9 @@ async def associar_coordenador(
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
     user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
-    """Vincula o(s) time(s) de um coordenador a uma campanha já existente
-    (além dos que já estavam). Uso: tela 'Campanhas por coordenador'."""
+    """Vincula um coordenador como responsável por uma campanha (a
+    campanha é o time/região do coordenador). Uso: tela 'Campanhas por
+    coordenador'."""
     if user["role"] != "gerente":
         raise HTTPException(status_code=403, detail="Acesso negado")
 
@@ -214,17 +205,10 @@ async def associar_coordenador(
     if not coordenador or coordenador.role != "coordenador":
         user_usecase.close()
         raise HTTPException(status_code=400, detail="Coordenador não encontrado.")
-
-    time_ids = user_usecase.list_times_by_gerente(payload.coordenador_id)
     user_usecase.close()
 
-    if not time_ids:
-        raise HTTPException(status_code=400, detail="Esse coordenador ainda não tem nenhum time.")
-
-    campanha = None
     try:
-        for time_id in time_ids:
-            campanha = campanha_repo.adicionar_time(campanha_id, time_id)
+        campanha = campanha_repo.definir_coordenador(campanha_id, payload.coordenador_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -240,7 +224,6 @@ async def campaign_detail(
     campaign_id: int,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
-    time_usecase: TimeUseCase = Depends(Provide[Container.time_usecase]),
 ):
     campaign = campanha_repo.get_by_id(campaign_id)
 
@@ -253,12 +236,9 @@ async def campaign_detail(
     # O frontend decide, com base em user.role, se mostra a tela de detalhe
     # (colaborador) ou a tela de edição (gerente/coo) — antes isso escolhia
     # o template no backend, agora é decisão de UI.
-    user_times = time_usecase.get_times_by_user(user["id"])
-
     return {
         "campaign": campaign_to_dict(campaign),
         "user": user,
-        "times": user_times,
         "editable": user["role"] != "colaborador",
     }
 

@@ -10,10 +10,6 @@ class UserRegisterRequest(BaseModel):
     cpf: constr(min_length=11, max_length=14)
     password: str
     role: str
-    subordinado_id: int | None = None
-    novo_time: str | None = None
-    time_existente_id: int | None = None
-    time_id: int | None = None
 
 
 class LoginRequest(BaseModel):
@@ -23,7 +19,3 @@ class LoginRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     cpf: str
-
-
-class AssignTimeRequest(BaseModel):
-    time_id: int
