@@ -198,6 +198,39 @@ class CampanhaRepository(ICampanhaRepository):
         self.db.close()
         return campaign
 
+    def adicionar_time(self, campanha_id: int, time_id: int) -> Campaign | None:
+        db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
+        if not db_campanha:
+            self.db.close()
+            return None
+
+        time = self.db.query(TimeModel).filter(TimeModel.id == time_id).first()
+        if not time:
+            self.db.close()
+            raise ValueError("Time não encontrado.")
+
+        ja_associado = any(t.id == time_id for t in db_campanha.times)
+        if not ja_associado:
+            db_campanha.times.append(time)
+            self.db.commit()
+            self.db.refresh(db_campanha)
+
+        campaign = Campaign(
+            id=db_campanha.id,
+            title=db_campanha.title,
+            paragraph=db_campanha.paragraph,
+            post_type=db_campanha.post_type,
+            url=db_campanha.url,
+            image=db_campanha.image,
+            folder_url=db_campanha.folder_url,
+            qrcode_url=db_campanha.qrcode_url,
+            data_criacao=db_campanha.data_criacao,
+            usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
+            times=[time.id for time in db_campanha.times],
+        )
+        self.db.close()
+        return campaign
+
     def update(self, campaign: Campaign) -> Campaign:
         db_campaign = self.db.query(CampanhaModel).get(campaign.id)
         if not db_campaign:
