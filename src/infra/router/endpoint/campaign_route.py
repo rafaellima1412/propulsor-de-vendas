@@ -44,7 +44,7 @@ def _fit_cover(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
     src_w, src_h = image.size
     scale = max(target_w / src_w, target_h / src_h)
     new_w, new_h = round(src_w * scale), round(src_h * scale)
-    resized = image.resize((new_w, new_h), Image.LANCZOS)
+    resized = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
     left = (new_w - target_w) // 2
     top = (new_h - target_h) // 2
@@ -63,6 +63,7 @@ def campaign_to_dict(campaign):
         "qrcode_url": campaign.qrcode_url,
         "usuario_id": campaign.usuario_id,
         "coordenador_id": campaign.coordenador_id,
+        "local_id": campaign.local_id,
         "data_criacao": campaign.data_criacao.strftime("%Y-%m-%d %H:%M:%S") if campaign.data_criacao else None,
     }
 
@@ -165,7 +166,7 @@ async def associar_colaborador(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     colaborador = user_usecase.get_user(payload.usuario_id)
-    if not colaborador or colaborador.role != "colaborador":
+    if not colaborador or colaborador.role != "colaborador":# type: ignore
         user_usecase.close()
         raise HTTPException(status_code=400, detail="Colaborador não encontrado.")
     user_usecase.close()
@@ -202,7 +203,7 @@ async def associar_coordenador(
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     coordenador = user_usecase.get_user(payload.coordenador_id)
-    if not coordenador or coordenador.role != "coordenador":
+    if not coordenador or coordenador.role != "coordenador":# type: ignore
         user_usecase.close()
         raise HTTPException(status_code=400, detail="Coordenador não encontrado.")
     user_usecase.close()
@@ -302,7 +303,6 @@ async def update_campaign(
     return {"message": "Campanha atualizada com sucesso!", "campaign": campaign_to_dict(campaign)}
 
 @router.post("/upload-imagem", status_code=status.HTTP_201_CREATED)
-@inject
 async def upload_imagem_base(
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user),

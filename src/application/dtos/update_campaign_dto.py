@@ -8,4 +8,5 @@ class UpdateCampaignDTO(BaseModel):
     url: str | None = None
     folder_url: str | None = None
     qrcode_url: str | None = None
+    local_id: int | None = None
     folder_image: str | None = None  # se presente, substitui a imagem da campanha

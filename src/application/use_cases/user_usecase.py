@@ -38,8 +38,8 @@ class UserUseCase:
     def list_by_role(self, role: str) -> list[UserModel]:
         return self.user_repo.get_by_role(role)
 
-    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
-        return self.user_repo.search_colaboradores(query)
+    def search_colaboradores(self, query: str | None = None, coordenador_id: int | None = None) -> list[UserModel]:
+        return self.user_repo.search_colaboradores(query, coordenador_id)
 
     def list_colaboradores_by_coordenador(self, coordenador_id: int) -> list[UserModel]:
         return self.user_repo.get_colaboradores_by_coordenador(coordenador_id)

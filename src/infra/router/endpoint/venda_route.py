@@ -39,6 +39,6 @@ def list_vendas(
     if user["role"] == "gerente":
         return usecase.list_vendas()
 
-    colaboradores = user_usecase.list_colaboradores_by_gerente(user["id"])
+    colaboradores = user_usecase.list_colaboradores_by_coordenador(user["id"])
     colaborador_ids = [c.id for c in colaboradores]
     return usecase.list_vendas_by_usuario_ids(colaborador_ids)

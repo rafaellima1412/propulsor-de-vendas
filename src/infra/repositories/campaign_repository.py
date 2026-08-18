@@ -20,6 +20,7 @@ class CampanhaRepository(ICampanhaRepository):
             image=campanha.image,
             folder_url=campanha.folder_url,
             qrcode_url=campanha.qrcode_url,
+            local_id=campanha.local_id,
         )
 
         if usuario_id is not None:
@@ -47,6 +48,7 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao,
             usuario_id=usuario_id,
             coordenador_id=db_campanha.coordenador_id,
+            local_id=db_campanha.local_id,
         )
         self.db.close()
         return campaign
@@ -72,6 +74,7 @@ class CampanhaRepository(ICampanhaRepository):
                 data_criacao=c.data_criacao,
                 usuario_id=usuario_id,
                 coordenador_id=c.coordenador_id,
+                local_id=c.local_id,
             )
             for c in campanhas_db
         ]
@@ -96,6 +99,7 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
             coordenador_id=db_campanha.coordenador_id,
+            local_id=db_campanha.local_id,
         )
         self.db.close()
         return campaign
@@ -120,6 +124,7 @@ class CampanhaRepository(ICampanhaRepository):
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
                 coordenador_id=c.coordenador_id,
+                local_id=c.local_id,
             )
             for c in campanhas_db
         ]
@@ -141,6 +146,7 @@ class CampanhaRepository(ICampanhaRepository):
                 data_criacao=c.data_criacao,
                 usuario_id=c.usuarios[0].id if c.usuarios else None,
                 coordenador_id=c.coordenador_id,
+                local_id=c.local_id,
             )
             for c in campanhas_db
         ]
@@ -176,6 +182,7 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
             coordenador_id=db_campanha.coordenador_id,
+            local_id=db_campanha.local_id,
         )
         self.db.close()
         return campaign
@@ -207,6 +214,7 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campanha.data_criacao,
             usuario_id=db_campanha.usuarios[0].id if db_campanha.usuarios else None,
             coordenador_id=db_campanha.coordenador_id,
+            local_id=db_campanha.local_id,
         )
         self.db.close()
         return campaign
@@ -223,6 +231,7 @@ class CampanhaRepository(ICampanhaRepository):
         db_campaign.folder_url = campaign.folder_url
         db_campaign.qrcode_url = campaign.qrcode_url
         db_campaign.image = campaign.image
+        db_campaign.local_id = campaign.local_id
 
         self.db.commit()
         self.db.refresh(db_campaign)
@@ -239,6 +248,7 @@ class CampanhaRepository(ICampanhaRepository):
             data_criacao=db_campaign.data_criacao,
             usuario_id=db_campaign.usuarios[0].id if db_campaign.usuarios else None,
             coordenador_id=db_campaign.coordenador_id,
+            local_id=db_campaign.local_id,
         )
         self.db.close()
         return updated_campaign
