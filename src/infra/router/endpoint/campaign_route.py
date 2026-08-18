@@ -21,7 +21,7 @@ from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseC
 from src.application.use_cases.user_usecase import UserUseCase
 from src.infra.dy.container import Container
 from src.infra.repositories.campaign_repository import CampanhaRepository
-from src.infra.router.schemas.campanha_requests import AssociarColaboradorRequest
+from src.infra.router.schemas.campanha_requests import AssociarColaboradorRequest, AssociarCoordenadorRequest
 
 router = APIRouter(prefix="/campanhas")
 
@@ -141,6 +141,23 @@ async def campanhas_de_gerente(
     return [campaign_to_dict(c) for c in campanhas]
 
 
+@router.get("/sem-coordenador")
+@inject
+async def campanhas_sem_coordenador(
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+):
+    """Campanhas que ainda não têm nenhum time (e portanto nenhum
+    coordenador) vinculado. Usado na tela 'Campanhas por coordenador' pra
+    escolher qual campanha vincular."""
+    if user["role"] != "gerente":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    campanhas = campanha_repo.get_all()
+    sem_coordenador = [c for c in campanhas if not c.times]
+    return [campaign_to_dict(c) for c in sem_coordenador]
+
+
 @router.post("/{campanha_id}/colaboradores", status_code=status.HTTP_201_CREATED)
 @inject
 async def associar_colaborador(
@@ -170,6 +187,44 @@ async def associar_colaborador(
 
     try:
         campanha = campanha_repo.adicionar_colaborador(campanha_id, payload.usuario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not campanha:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada.")
+
+    return campanha
+
+
+@router.post("/{campanha_id}/coordenador", status_code=status.HTTP_201_CREATED)
+@inject
+async def associar_coordenador(
+    campanha_id: int,
+    payload: AssociarCoordenadorRequest,
+    user: dict = Depends(get_current_user),
+    campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
+):
+    """Vincula o(s) time(s) de um coordenador a uma campanha já existente
+    (além dos que já estavam). Uso: tela 'Campanhas por coordenador'."""
+    if user["role"] != "gerente":
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    coordenador = user_usecase.get_user(payload.coordenador_id)
+    if not coordenador or coordenador.role != "coordenador":
+        user_usecase.close()
+        raise HTTPException(status_code=400, detail="Coordenador não encontrado.")
+
+    time_ids = user_usecase.list_times_by_gerente(payload.coordenador_id)
+    user_usecase.close()
+
+    if not time_ids:
+        raise HTTPException(status_code=400, detail="Esse coordenador ainda não tem nenhum time.")
+
+    campanha = None
+    try:
+        for time_id in time_ids:
+            campanha = campanha_repo.adicionar_time(campanha_id, time_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

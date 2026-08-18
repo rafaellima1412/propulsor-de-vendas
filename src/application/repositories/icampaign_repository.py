@@ -39,3 +39,7 @@ class ICampanhaRepository(ABC):
     @abstractmethod
     def adicionar_colaborador(self, campanha_id: int, usuario_id: int) -> Campaign | None:
         pass
+
+    @abstractmethod
+    def adicionar_time(self, campanha_id: int, time_id: int) -> Campaign | None:
+        pass
