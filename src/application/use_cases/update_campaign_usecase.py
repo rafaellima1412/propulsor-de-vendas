@@ -31,6 +31,7 @@ class UpdateCampaignUseCase:
         campaign.url = update_dto.url
         campaign.folder_url = update_dto.folder_url
         campaign.qrcode_url = update_dto.qrcode_url
+        campaign.local_id = update_dto.local_id
 
         if update_dto.folder_image:
             campaign.image = update_dto.folder_image

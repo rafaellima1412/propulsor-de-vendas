@@ -10,6 +10,7 @@ class Campaign(BaseModel):
     image: str | None = None
     usuario_id: int | None = None
     coordenador_id: int | None = None
+    local_id: int | None = None
     post_type: str | None = None
     url: str | None = None
     folder_url: str | None = None

@@ -39,5 +39,5 @@ class IUserRepository(ABC):
         pass
 
     @abstractmethod
-    def search_colaboradores(self, query: str | None = None) -> list[UserModel]:
+    def search_colaboradores(self, query: str | None = None, coordenador_id: int | None = None) -> list[UserModel]:
         pass

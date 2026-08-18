@@ -25,5 +25,9 @@ class CampanhaModel(Base):
     coordenador_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     coordenador = relationship("UserModel", foreign_keys=[coordenador_id], lazy="joined")
 
+    # A região da campanha é um Local (mesma tabela usada em /locais).
+    local_id = Column(Integer, ForeignKey("locais.id"), nullable=True)
+    local = relationship("Local", foreign_keys=[local_id], lazy="joined")
+
     usuarios = relationship("UserModel", secondary="user_campanha", back_populates="campanhas")
     vendas = relationship("VendaModel", back_populates="campanha", cascade="all, delete-orphan")
