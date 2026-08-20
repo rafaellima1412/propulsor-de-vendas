@@ -38,6 +38,7 @@ class LocalRepository(ILocalRepository):
 
     def list_all(self) -> list[LocalSchema]:
         rows = self.db.query(Local, func.ST_AsText(Local.coordenadas)).all()
+        self.db.close()
         return [_to_schema(local, wkt) for local, wkt in rows]
 
     def get_by_id(self, local_id: int) -> LocalSchema | None:
@@ -46,6 +47,7 @@ class LocalRepository(ILocalRepository):
             .filter(Local.id == local_id)
             .first()
         )
+        self.db.close()
         if not row:
             return None
 
@@ -66,6 +68,7 @@ class LocalRepository(ILocalRepository):
     def update(self, local_id: int, data: LocalUpdate) -> LocalSchema | None:
         local = self.db.query(Local).filter(Local.id == local_id).first()
         if not local:
+            self.db.close()
             return None
 
         if data.nome is not None:
@@ -87,4 +90,4 @@ class LocalRepository(ILocalRepository):
         if local:
             self.db.delete(local)
             self.db.commit()
-            self.db.close()
+        self.db.close()

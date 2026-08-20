@@ -26,6 +26,7 @@ class CampanhaRepository(ICampanhaRepository):
         if usuario_id is not None:
             usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
             if not usuario:
+                self.db.close()
                 raise ValueError("Usuário não encontrado")
 
             db_campanha.usuarios.append(usuario)
