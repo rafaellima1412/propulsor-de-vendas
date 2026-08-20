@@ -13,7 +13,7 @@ from config.settings import OUTPUT_FOLDER, UPLOAD_FOLDER
 from src.application.auth.auth import get_current_user
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
 from src.application.dtos.update_campaign_dto import UpdateCampaignDTO
-from src.application.services.qr_code_generator import resolve_local_media_path
+from src.application.services.qr_code_generator import  build_qr_image, resolve_local_media_path
 from src.application.use_cases.create_campaign_usecase import CreateCampanhaUseCase
 from src.application.use_cases.dashboard_usecase import DashboardUseCase
 from src.application.use_cases.update_campaign_usecase import UpdateCampaignUseCase
@@ -49,6 +49,25 @@ def _fit_cover(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
     left = (new_w - target_w) // 2
     top = (new_h - target_h) // 2
     return resized.crop((left, top, left + target_w, top + target_h))
+
+
+def _paste_qr(image: Image.Image, data: str) -> Image.Image:
+    """Cola um QR code no canto inferior direito da imagem, com tamanho
+    proporcional (22% do lado menor) pra garantir que fique legível em
+    qualquer formato — feed, stories ou post."""
+    margin = round(min(image.size) * 0.04)
+    qr_size = round(min(image.size) * 0.22)
+    qr_image = build_qr_image(data, qr_size)
+
+    # moldura branca por trás do QR, com uma margem, pra garantir contraste
+    # e leitura mesmo em cima de foto/fundo escuro.
+    pad = round(qr_size * 0.08)
+    frame = Image.new("RGB", (qr_size + pad * 2, qr_size + pad * 2), "white")
+    frame.paste(qr_image, (pad, pad))
+
+    position = (image.width - frame.width - margin, image.height - frame.height - margin)
+    image.paste(frame, position)
+    return image
 
 
 def campaign_to_dict(campaign):
@@ -250,10 +269,14 @@ async def campaign_social_image(
     formato: str,
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
+    user_usecase: UserUseCase = Depends(Provide[Container.user_usecase]),
 ):
     """Gera (e cacheia em disco) uma versão da imagem final da campanha
     recortada pro formato pedido — pra colaborador postar direto no Feed,
-    Stories ou como post horizontal, sem precisar recortar na mão."""
+    Stories ou como post horizontal, sem precisar recortar na mão. Quando
+    quem pede é um colaborador, cola um QR code pessoal no canto (pra
+    identificar quem vendeu ao ser escaneado); coordenador/gerente veem só
+    a prévia, sem QR."""
     if formato not in SOCIAL_FORMATS:
         raise HTTPException(status_code=404, detail="Formato inválido. Use feed, stories ou post.")
 
@@ -263,9 +286,12 @@ async def campaign_social_image(
 
     # Colaborador só pode gerar recortes da própria campanha; gerente e
     # coordenador podem de qualquer uma (mesma regra do campaign_detail).
+    colaborador = None
     if user["role"] == "colaborador":
         if campaign.usuario_id != user["id"]:
             raise HTTPException(status_code=403, detail="Acesso negado")
+        colaborador = user_usecase.get_user(user["id"])
+        user_usecase.close()
     elif user["role"] not in ("coordenador", "gerente"):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
@@ -278,13 +304,22 @@ async def campaign_social_image(
 
     cache_dir = Path(OUTPUT_FOLDER) / "social"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = cache_dir / f"{campaign_id}_{formato}.png"
+    # com QR: cache por colaborador (o QR é pessoal, não pode ser
+    # compartilhado entre colaboradores diferentes); sem QR (visão de
+    # coordenador/gerente): cache único por campanha+formato.
+    cache_suffix = f"_col{colaborador.id}" if colaborador else ""
+    cache_path = cache_dir / f"{campaign_id}_{formato}{cache_suffix}.png"
 
     # Regenera só se ainda não existe ou se a imagem original mudou desde a
     # última vez (ex: campanha foi editada com uma imagem nova).
     if not cache_path.exists() or os.path.getmtime(source_path) > os.path.getmtime(cache_path):
         base_image = Image.open(source_path).convert("RGB")
         social_image = _fit_cover(base_image, SOCIAL_FORMATS[formato])
+
+        if colaborador:
+            qr_data = f"Vendedor: {colaborador.full_name} | CPF: {colaborador.cpf} | Campanha: {campaign_id}"
+            social_image = _paste_qr(social_image, qr_data)
+
         social_image.save(cache_path)
 
     return FileResponse(cache_path, media_type="image/png", filename=f"{campaign.title}_{formato}.png")

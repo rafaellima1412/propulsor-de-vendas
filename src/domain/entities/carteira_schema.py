@@ -28,3 +28,23 @@ class CarteiraAgregadaOut(BaseModel):
     total_campanhas: int
     total_vendas_registradas: int
     taxa_conversao: float
+
+
+class RankingVendedorOut(BaseModel):
+    """Uma linha do ranking de vendedores — quantas vendas (status
+    'vendido') cada colaborador fechou."""
+
+    usuario_id: int
+    full_name: str
+    total_vendido: int
+
+
+class MapaCalorPontoOut(BaseModel):
+    """Um ponto no mapa de calor de vendas — total de vendas fechadas na
+    região desse local."""
+
+    local_id: int
+    nome: str
+    latitude: float
+    longitude: float
+    total_vendas: int

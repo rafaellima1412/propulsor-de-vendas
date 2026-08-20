@@ -110,7 +110,7 @@ def login(payload: LoginRequest, response: Response):
         f"Bearer {access_token}",
         httponly=True,
         secure=True,
-        samesite="Lax",
+        samesite="lax",
     )
     return {"username": user["username"], "role": user["role"]}
 
@@ -124,9 +124,10 @@ async def api_gerentes(
     if current_user["role"] not in ("gerente", "admin"):
         raise HTTPException(status_code=403, detail="Acesso negado")
     gerentes = user_usecase.list_by_role("coordenador")
-    result = [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
-    user_usecase.close()
-    return result
+    try:
+        return [UserOut.model_validate(u, from_attributes=True) for u in gerentes]
+    finally:
+        user_usecase.close()
 
 
 @router.get("/colaboradores", response_model=list[UserOut])
@@ -144,9 +145,10 @@ async def search_colaboradores(
     coordenador_id = current_user["id"] if current_user["role"] == "coordenador" else None
 
     colaboradores = user_usecase.search_colaboradores(q, coordenador_id)
-    result = [UserOut.model_validate(u, from_attributes=True) for u in colaboradores]
-    user_usecase.close()
-    return result
+    try:
+        return [UserOut.model_validate(u, from_attributes=True) for u in colaboradores]
+    finally:
+        user_usecase.close()
 
 
 @router.post("/logout")

@@ -2,7 +2,12 @@ from src.application.repositories.icampaign_repository import ICampanhaRepositor
 from src.application.repositories.iuser_repository import IUserRepository
 from src.application.repositories.ivenda_repository import IVendaRepository
 from src.domain.constants.comissoes import COMISSAO_POR_PLANO
-from src.domain.entities.carteira_schema import CarteiraAgregadaOut, CarteiraOut
+from src.domain.entities.carteira_schema import (
+    CarteiraAgregadaOut,
+    CarteiraOut,
+    MapaCalorPontoOut,
+    RankingVendedorOut,
+)
 from src.domain.enums.enums import StatusVenda
 
 
@@ -42,6 +47,31 @@ class CarteiraUseCase:
         return CarteiraAgregadaOut(
             total_colaboradores=len(colaborador_ids), total_campanhas=len(campanhas), **resumo
         )
+
+    def ranking_time(self, coordenador_id: int) -> list[RankingVendedorOut]:
+        colaboradores = self.user_repo.get_colaboradores_by_coordenador(coordenador_id)
+        return self._ranking(colaboradores)
+
+    def ranking_geral(self) -> list[RankingVendedorOut]:
+        colaboradores = self.user_repo.get_by_role("colaborador")
+        return self._ranking(colaboradores)
+
+    def mapa_calor_time(self, coordenador_id: int) -> list[MapaCalorPontoOut]:
+        return [MapaCalorPontoOut(**ponto) for ponto in self.venda_repo.mapa_calor(coordenador_id)]
+
+    def mapa_calor_geral(self) -> list[MapaCalorPontoOut]:
+        return [MapaCalorPontoOut(**ponto) for ponto in self.venda_repo.mapa_calor()]
+
+    def _ranking(self, colaboradores: list) -> list[RankingVendedorOut]:
+        colaborador_ids = [c.id for c in colaboradores]
+        contagem = self.venda_repo.ranking_por_usuario(colaborador_ids)
+
+        ranking = [
+            RankingVendedorOut(usuario_id=c.id, full_name=c.full_name, total_vendido=contagem.get(c.id, 0))
+            for c in colaboradores
+        ]
+        ranking.sort(key=lambda r: r.total_vendido, reverse=True)
+        return ranking
 
     def _resumir_vendas(self, vendas: list) -> dict:
         vendas_por_status = {status.value: 0 for status in StatusVenda}

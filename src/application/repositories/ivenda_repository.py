@@ -41,4 +41,12 @@ class IVendaRepository(ABC):
     @abstractmethod
     def contagem_por_mes_all(self) -> dict[tuple[int, int], int]:
         """Igual a contagem_por_mes, mas sem filtro de usuário — todas as vendas da empresa."""
+
+    @abstractmethod
+    def ranking_por_usuario(self, usuario_ids: list[int]) -> dict[int, int]:
+        """Vendas com status 'vendido' por usuário, entre os ids informados."""
+
+    @abstractmethod
+    def mapa_calor(self, coordenador_id: int | None = None) -> list[dict]:
+        """Total de vendas por local de campanha — mapa de pontos quentes."""
         pass
