@@ -7,16 +7,12 @@ from sqlalchemy.orm import Session
 from src.application.repositories.ilocal_repository import ILocalRepository
 from src.domain.entities.local_schema import Coordenadas, LocalCreate, LocalSchema, LocalUpdate
 from src.infra.database.models.local_model import Local
+from src.infra.repositories.base_repository import BaseRepository
 
-# "shapely" (usado por geoalchemy2.shape.to_shape) não é dependência do
-# projeto, então lemos o ponto de volta como texto WKT ("POINT(lon lat)")
-# via ST_AsText, sem precisar de bibliotecas geoespaciais extras.
 _POINT_RE = re.compile(r"POINT\(([-\d.]+)\s+([-\d.]+)\)")
-
 
 def _make_point(coordenadas: Coordenadas) -> WKTElement:
     return WKTElement(f"POINT({coordenadas.longitude} {coordenadas.latitude})", srid=4326)
-
 
 def _to_schema(local: Local, wkt: str | None) -> LocalSchema:
     latitude, longitude = 0.0, 0.0
@@ -32,13 +28,12 @@ def _to_schema(local: Local, wkt: str | None) -> LocalSchema:
     )
 
 
-class LocalRepository(ILocalRepository):
+class LocalRepository(ILocalRepository, BaseRepository):
     def __init__(self, db: Session):
         self.db = db
 
     def list_all(self) -> list[LocalSchema]:
         rows = self.db.query(Local, func.ST_AsText(Local.coordenadas)).all()
-        self.db.close()
         return [_to_schema(local, wkt) for local, wkt in rows]
 
     def get_by_id(self, local_id: int) -> LocalSchema | None:
@@ -47,7 +42,6 @@ class LocalRepository(ILocalRepository):
             .filter(Local.id == local_id)
             .first()
         )
-        self.db.close()
         if not row:
             return None
 
@@ -61,14 +55,13 @@ class LocalRepository(ILocalRepository):
         self.db.refresh(novo_local)
 
         local_id = novo_local.id
-        self.db.close()
 
         return LocalSchema(id=local_id, nome=data.nome, coordenadas=data.coordenadas)
 
     def update(self, local_id: int, data: LocalUpdate) -> LocalSchema | None:
         local = self.db.query(Local).filter(Local.id == local_id).first()
         if not local:
-            self.db.close()
+
             return None
 
         if data.nome is not None:
@@ -82,7 +75,6 @@ class LocalRepository(ILocalRepository):
         wkt = self.db.query(func.ST_AsText(Local.coordenadas)).filter(Local.id == local_id).scalar()
         updated = _to_schema(local, wkt)
 
-        self.db.close()
         return updated
 
     def delete(self, local_id: int) -> None:
@@ -90,4 +82,3 @@ class LocalRepository(ILocalRepository):
         if local:
             self.db.delete(local)
             self.db.commit()
-        self.db.close()

@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from src.application.dtos.campaign_create_dto import CampanhaCreateDTO
@@ -5,9 +6,11 @@ from src.application.repositories.icampaign_repository import ICampanhaRepositor
 from src.domain.entities.campaign import Campaign
 from src.infra.database.models.user_model import UserModel
 from src.infra.database.models.campaign_model import CampanhaModel
+from src.infra.database.models.venda_model import VendaModel
+from src.infra.repositories.base_repository import BaseRepository
 
 
-class CampanhaRepository(ICampanhaRepository):
+class CampanhaRepository(ICampanhaRepository, BaseRepository):
     def __init__(self, db: Session):
         self.db = db
 
@@ -26,7 +29,6 @@ class CampanhaRepository(ICampanhaRepository):
         if usuario_id is not None:
             usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
             if not usuario:
-                self.db.close()
                 raise ValueError("Usuário não encontrado")
 
             db_campanha.usuarios.append(usuario)
@@ -51,7 +53,6 @@ class CampanhaRepository(ICampanhaRepository):
             coordenador_id=db_campanha.coordenador_id,
             local_id=db_campanha.local_id,
         )
-        self.db.close()
         return campaign
 
     def list_by_usuario_id(self, usuario_id: int) -> list[Campaign]:
@@ -79,13 +80,12 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
-        self.db.close()
+
         return campanhas
 
     def get_by_id(self, campanha_id: int) -> Campaign | None:
         db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
-            self.db.close()
             return None
 
         campaign = Campaign(
@@ -102,8 +102,47 @@ class CampanhaRepository(ICampanhaRepository):
             coordenador_id=db_campanha.coordenador_id,
             local_id=db_campanha.local_id,
         )
-        self.db.close()
         return campaign
+
+    def get_detalhe(self, campanha_id: int) -> dict | None:
+        """Tudo que a tela de detalhe de uma campanha precisa mostrar, já
+        resolvido (nomes em vez de só ids) — coordenador e local vêm
+        carregados junto (lazy="joined" no model), só falta puxar os
+        colaboradores e contar as vendas antes de fechar a sessão."""
+        db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
+        if not db_campanha:
+            return None
+
+        colaboradores = [{"id": u.id, "full_name": u.full_name} for u in db_campanha.usuarios]
+        coordenador = (
+            {"id": db_campanha.coordenador.id, "full_name": db_campanha.coordenador.full_name}
+            if db_campanha.coordenador
+            else None
+        )
+        local = {"id": db_campanha.local.id, "nome": db_campanha.local.nome} if db_campanha.local else None
+
+        total_vendas = (
+            self.db.query(func.count(VendaModel.id))
+            .filter(VendaModel.campanha_id == campanha_id, VendaModel.status == "vendido")
+            .scalar()
+        )
+
+        detalhe = {
+            "id": db_campanha.id,
+            "title": db_campanha.title,
+            "paragraph": db_campanha.paragraph,
+            "post_type": db_campanha.post_type,
+            "url": db_campanha.url,
+            "image": db_campanha.image,
+            "folder_url": db_campanha.folder_url,
+            "qrcode_url": db_campanha.qrcode_url,
+            "data_criacao": db_campanha.data_criacao,
+            "coordenador": coordenador,
+            "local": local,
+            "colaboradores": colaboradores,
+            "total_vendas": total_vendas or 0,
+        }
+        return detalhe
 
     def list_by_coordenador_id(self, coordenador_id: int) -> list[Campaign]:
         campanhas_db = (
@@ -129,7 +168,6 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
-        self.db.close()
         return campanhas
 
     def get_all(self) -> list[Campaign]:
@@ -151,18 +189,15 @@ class CampanhaRepository(ICampanhaRepository):
             )
             for c in campanhas_db
         ]
-        self.db.close()
         return campanhas
 
     def adicionar_colaborador(self, campanha_id: int, usuario_id: int) -> Campaign | None:
         db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
-            self.db.close()
             return None
 
         usuario = self.db.query(UserModel).filter(UserModel.id == usuario_id).first()
         if not usuario:
-            self.db.close()
             raise ValueError("Usuário não encontrado.")
 
         ja_associado = any(u.id == usuario_id for u in db_campanha.usuarios)
@@ -185,18 +220,15 @@ class CampanhaRepository(ICampanhaRepository):
             coordenador_id=db_campanha.coordenador_id,
             local_id=db_campanha.local_id,
         )
-        self.db.close()
         return campaign
 
     def definir_coordenador(self, campanha_id: int, coordenador_id: int) -> Campaign | None:
         db_campanha = self.db.query(CampanhaModel).filter(CampanhaModel.id == campanha_id).first()
         if not db_campanha:
-            self.db.close()
             return None
 
         coordenador = self.db.query(UserModel).filter(UserModel.id == coordenador_id).first()
         if not coordenador:
-            self.db.close()
             raise ValueError("Coordenador não encontrado.")
 
         db_campanha.coordenador_id = coordenador_id
@@ -217,7 +249,6 @@ class CampanhaRepository(ICampanhaRepository):
             coordenador_id=db_campanha.coordenador_id,
             local_id=db_campanha.local_id,
         )
-        self.db.close()
         return campaign
 
     def update(self, campaign: Campaign) -> Campaign:
@@ -251,5 +282,4 @@ class CampanhaRepository(ICampanhaRepository):
             coordenador_id=db_campaign.coordenador_id,
             local_id=db_campaign.local_id,
         )
-        self.db.close()
         return updated_campaign

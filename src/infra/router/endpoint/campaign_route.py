@@ -245,19 +245,25 @@ async def campaign_detail(
     user: dict = Depends(get_current_user),
     campanha_repo: CampanhaRepository = Depends(Provide[Container.campanha_repository]),
 ):
-    campaign = campanha_repo.get_by_id(campaign_id)
+    detalhe = campanha_repo.get_detalhe(campaign_id)
 
-    if not campaign:
+    if not detalhe:
         raise HTTPException(status_code=404, detail="Campanha não encontrada")
 
     if user["role"] not in ["colaborador", "coordenador", "gerente"]:
         raise HTTPException(status_code=403, detail="Acesso negado")
 
-    # O frontend decide, com base em user.role, se mostra a tela de detalhe
-    # (colaborador) ou a tela de edição (gerente/coo) — antes isso escolhia
-    # o template no backend, agora é decisão de UI.
+    if user["role"] == "colaborador":
+        pertence = any(c["id"] == user["id"] for c in detalhe["colaboradores"])
+        if not pertence:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+
+    detalhe["data_criacao"] = (
+        detalhe["data_criacao"].strftime("%Y-%m-%d %H:%M:%S") if detalhe["data_criacao"] else None
+    )
+
     return {
-        "campaign": campaign_to_dict(campaign),
+        "campaign": detalhe,
         "user": user,
         "editable": user["role"] != "colaborador",
     }
