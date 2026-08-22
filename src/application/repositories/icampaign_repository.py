@@ -27,6 +27,10 @@ class ICampanhaRepository(ABC):
         pass
 
     @abstractmethod
+    def get_detalhe(self, campanha_id: int) -> dict | None:
+        pass
+
+    @abstractmethod
     def get_all(self) -> list[Campaign]:
         pass
 

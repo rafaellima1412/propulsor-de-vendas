@@ -5,9 +5,9 @@ from src.application.dtos.user_create_dto import UserCreateDTO
 from src.application.repositories.iuser_repository import IUserRepository
 from src.infra.database.models.campaign_model import CampanhaModel
 from src.infra.database.models.user_model import UserModel
+from src.infra.repositories.base_repository import BaseRepository
 
-
-class UserRepository(IUserRepository):
+class UserRepository(IUserRepository, BaseRepository):
     def __init__(self, db: Session):
         self.db = db
 
@@ -22,41 +22,36 @@ class UserRepository(IUserRepository):
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)
-        self.db.close()
         return db_user
 
     def update(self, user: UserModel) -> UserModel:
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
-        self.db.close()
+        
         return user
 
     def get_all(self):
         resultado = self.db.query(UserModel).all()
-        self.db.close()
+        
         return resultado
 
     def get_by_username(self, username: str) -> UserModel | None:
         resultado = self.db.query(UserModel).filter(UserModel.username == username).first()
-        self.db.close()
         return resultado
 
     def get_by_id(self, user_id: int) -> UserModel | None:
         resultado = self.db.query(UserModel).filter(UserModel.id == user_id).first()
-        self.db.close()
         return resultado
 
     def get_by_cpf(self, cpf: str) -> UserModel | None:
         resultado = self.db.query(UserModel).filter(UserModel.cpf == cpf).first()
-        self.db.close()
         return resultado
 
     def get_by_role(self, role: str) -> list[UserModel]:
         resultado = (
             self.db.query(UserModel).options(selectinload(UserModel.campanhas)).filter(UserModel.role == role).all()
         )
-        self.db.close()
         return resultado
 
     def get_colaboradores_by_coordenador(self, coordenador_id: int) -> list[UserModel]:
@@ -69,19 +64,19 @@ class UserRepository(IUserRepository):
             .distinct()
             .all()
         )
-        self.db.close()
         return resultado
 
     def search_colaboradores(self, query: str | None = None, coordenador_id: int | None = None) -> list[UserModel]:
         # ATENÇÃO: não fechar a sessão aqui — mesmo motivo do get_by_role
         # (serialização via UserOut faz lazy-load de `campanhas` logo em
         # seguida). Quem chama fecha depois (ver user_usecase.close()).
-        base = self.db.query(UserModel).filter(UserModel.role == "colaborador")
+        base = (
+            self.db.query(UserModel)
+            .options(selectinload(UserModel.campanhas))
+            .filter(UserModel.role == "colaborador")
+        )
 
         if coordenador_id is not None:
-            # coordenador só pode escolher colaborador livre (sem nenhuma
-            # campanha) ou que já está numa campanha dele mesmo — não pode
-            # "roubar" colaborador de outro coordenador.
             base = base.filter(
                 or_(
                     ~UserModel.campanhas.any(),

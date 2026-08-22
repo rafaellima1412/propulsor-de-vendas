@@ -8,13 +8,13 @@ from src.domain.enums.enums import PlanoInternet
 from src.infra.database.models.campaign_model import CampanhaModel
 from src.infra.database.models.local_model import Local
 from src.infra.database.models.venda_model import VendaModel
-
+from src.infra.repositories.base_repository import BaseRepository
 # mesmo padrão usado em local_repository.py pra ler o ponto de volta como
 # texto (WKT) via ST_AsText, sem depender de "shapely".
 _POINT_RE = re.compile(r"POINT\(([-\d.]+)\s+([-\d.]+)\)")
 
 
-class VendaRepository:
+class VendaRepository(BaseRepository):
     def __init__(self, db: Session):
         self.db = db
 
@@ -31,7 +31,6 @@ class VendaRepository:
             .filter(VendaModel.id == db_venda.id)
             .first()
         )
-        self.db.close()
         return resultado
 
     def get_all(self):
@@ -41,12 +40,11 @@ class VendaRepository:
             .order_by(VendaModel.data_criacao.desc())
             .all()
         )
-        self.db.close()
         return resultado
 
     def get_by_usuario_ids(self, usuario_ids: list[int]) -> list[VendaModel]:
         if not usuario_ids:
-            self.db.close()
+
             return []
         resultado = (
             self.db.query(VendaModel)
@@ -55,12 +53,10 @@ class VendaRepository:
             .order_by(VendaModel.data_criacao.desc())
             .all()
         )
-        self.db.close()
         return resultado
 
     def get_by_id(self, venda_id: int):
         resultado = self.db.query(VendaModel).filter(VendaModel.id == venda_id).first()
-        self.db.close()
         return resultado
 
     def contagem_por_plano(self, usuario_ids: int | list[int]) -> dict[str, int]:
@@ -68,7 +64,7 @@ class VendaRepository:
             usuario_ids = [usuario_ids]
 
         if not usuario_ids:
-            self.db.close()
+
             return {}
         # print(usuario_ids, type(usuario_ids))
         resultados = (
@@ -80,7 +76,6 @@ class VendaRepository:
             .group_by(VendaModel.plano)
             .all()
         )
-        self.db.close()
 
         return {
             plano.value if isinstance(plano, PlanoInternet) else plano: count
@@ -92,7 +87,7 @@ class VendaRepository:
             usuario_ids = [usuario_ids]
 
         if not usuario_ids:
-            self.db.close()
+
             return {}
 
         resultados = (
@@ -109,7 +104,6 @@ class VendaRepository:
             .order_by("ano", "mes")
             .all()
         )
-        self.db.close()
 
         return {
             (int(ano), int(mes)): count
@@ -121,7 +115,7 @@ class VendaRepository:
         ids informados. Devolve só quem tem pelo menos 1 venda — quem não
         vendeu nada fica de fora (o chamador completa com 0 se quiser)."""
         if not usuario_ids:
-            self.db.close()
+
             return {}
 
         resultados = (
@@ -133,7 +127,6 @@ class VendaRepository:
             .group_by(VendaModel.usuario_id)
             .all()
         )
-        self.db.close()
 
         return {usuario_id: count for usuario_id, count in resultados}
 
@@ -159,7 +152,6 @@ class VendaRepository:
 
         query = query.group_by(Local.id, Local.nome)
         linhas = query.all()
-        self.db.close()
 
         resultados = []
         for local_id, nome, wkt, total in linhas:
@@ -187,7 +179,6 @@ class VendaRepository:
             .group_by(VendaModel.plano)
             .all()
         )
-        self.db.close()
 
         return {
             plano.value if isinstance(plano, PlanoInternet) else plano: count
@@ -207,7 +198,6 @@ class VendaRepository:
             .order_by("ano", "mes")
             .all()
         )
-        self.db.close()
 
         return {
             (int(ano), int(mes)): count
